@@ -117,6 +117,51 @@ func UnBaseXFloatString(value *big.Int, decimal uint8) (string, error)
 func BigIntByString(value string, decimal uint8) (*big.Int, error)
 ```
 
+#### Scaled Uint64 Conversions (scaled_converter.go)
+
+**When to use**: High-performance orderbook operations, risk calculations, oracle price aggregation
+
+**Purpose**: Convert u256 (*big.Int) to u64 (scaled) for fast sorting, comparisons, and map operations while preserving precision for exact calculations.
+
+```go
+// Core conversion: u256 to u64 (scaled)
+func BigIntToScaledUint64(value *big.Int, scale uint64) (uint64, error)
+func ScaledUint64ToBigInt(value uint64, scale uint64) *big.Int
+
+// Price key conversions (most common use case)
+func BigIntToPriceKey(priceBig *big.Int) (uint64, error)
+func PriceKeyToBigInt(priceKey uint64) *big.Int
+func Float64ToPriceKey(price float64) (uint64, error)
+func PriceKeyToFloat64(priceKey uint64) float64
+func StringToPriceKey(priceStr string) (uint64, error)
+
+// Value key conversions (for aggregations)
+func BigIntToValueKey(valueBig *big.Int) (uint64, error)
+func ValueKeyToBigInt(valueKey uint64) *big.Int
+func Float64ToValueKey(value float64) (uint64, error)
+
+// Safe arithmetic operations on keys
+func AddPriceKeys(a, b uint64) (uint64, error)
+func SubtractPriceKeys(a, b uint64) (uint64, error)
+func MultiplyPriceKeys(a, b uint64) (uint64, error)
+func ComparePriceKeys(a, b uint64) int
+
+// Batch operations for performance
+func BatchBigIntToPriceKeys(prices []*big.Int) ([]uint64, error)
+func BatchPriceKeysToBigInt(keys []uint64) []*big.Int
+
+// Advanced operations for risk calculations
+func CalculateMarginRatioKey(equityKey, marginRequirementKey uint64) (uint64, error)
+func IsLiquidatableKey(marginRatioKey, liquidationThresholdKey uint64) bool
+```
+
+**Scaling Constants**:
+- `PriceScale = 1e8` (8 decimal places for prices)
+- `ValueScale = 1e8` (8 decimal places for position values)
+- `RatioScale = 1e6` (6 decimal places for ratios)
+- `QuantityScale = 1e8` (8 decimal places for quantities)
+- `ScoreScale = 1e8` (8 decimal places for ADL scores)
+
 #### APR Calculations
 
 ```go
@@ -211,7 +256,75 @@ func formatTokenAmount(amount *big.Int, decimals uint8) string {
 }
 ```
 
-### 5. JSON Handling
+### 5. High-Performance Orderbook Operations
+
+```go
+// Convert order prices to uint64 keys for fast sorting and map lookups
+func processOrderbookOrder(priceStr string) {
+    // Convert u256 string (from EIP-712) to uint64 key
+    priceKey, err := safem.StringToPriceKey(priceStr)
+    if err != nil {
+        log.Printf("Invalid price: %v", err)
+        return
+    }
+    
+    // Use priceKey for fast map lookups and sorting
+    orderbookMap[priceKey] = order
+    
+    // For exact calculations, convert back to *big.Int
+    exactPrice := safem.PriceKeyToBigInt(priceKey)
+    // Perform precise arithmetic with exactPrice
+}
+
+// Batch conversion for orderbook snapshots
+func getOrderbookDepth(prices []*big.Int) ([]uint64, error) {
+    return safem.BatchBigIntToPriceKeys(prices)
+}
+```
+
+### 6. Risk Engine Calculations
+
+```go
+// Fast liquidation checks using uint64 keys
+func checkLiquidation(equity, marginRequirement *big.Int) bool {
+    equityKey, _ := safem.BigIntToValueKey(equity)
+    marginKey, _ := safem.BigIntToValueKey(marginRequirement)
+    
+    // Calculate margin ratio as uint64 key
+    ratioKey, err := safem.CalculateMarginRatioKey(equityKey, marginKey)
+    if err != nil {
+        return false
+    }
+    
+    // Fast comparison (no float64 precision issues)
+    liquidationThreshold := uint64(1050000) // 1.05 * 1e6
+    return safem.IsLiquidatableKey(ratioKey, liquidationThreshold)
+}
+```
+
+### 7. Oracle Price Aggregation
+
+```go
+// Convert price feeds to keys for fast sorting and aggregation
+func aggregateOraclePrices(prices []float64) (uint64, error) {
+    // Convert all prices to keys
+    keys, err := safem.BatchFloat64ToPriceKeys(prices)
+    if err != nil {
+        return 0, err
+    }
+    
+    // Fast integer sorting (much faster than float64)
+    sort.Slice(keys, func(i, j int) bool {
+        return safem.ComparePriceKeys(keys[i], keys[j]) < 0
+    })
+    
+    // Calculate median using integer arithmetic
+    medianKey := keys[len(keys)/2]
+    return medianKey, nil
+}
+```
+
+### 8. JSON Handling
 
 ```go
 // Safe JSON marshaling/unmarshaling of large numbers
