@@ -2,14 +2,239 @@
 
 A high-performance Go library providing safe arithmetic operations for blockchain and financial calculations in the EngineDex system. This package is critical for handling precision-sensitive operations involving large numbers, decimal conversions, and financial calculations.
 
-## Features
+## What is SafeMath?
 
-- **Safe Conversion**: Between `big.Int`, `big.Float`, and `float64` types
-- **Precision-Preserving**: Arithmetic for financial calculations (Wei/Ether, token amounts)
-- **Base Conversion**: Utilities for different decimal representations
-- **APR Calculations**: Time-based calculations for lending/borrowing operations
-- **Thread-Safe**: All functions are pure and thread-safe
-- **Performance Optimized**: Caching for common operations and optimized paths
+SafeMath is a comprehensive arithmetic library designed to solve the fundamental challenges of working with large numbers and decimal precision in blockchain and financial systems. Unlike standard Go types that can lose precision or overflow, SafeMath provides multiple specialized implementations optimized for different use cases, ensuring your calculations remain accurate, performant, and safe.
+
+### The Core Problem
+
+Blockchain and financial systems deal with numbers that are:
+- **Too large** for standard integer types (e.g., Wei values exceed int64)
+- **Too precise** for float64 (e.g., 18 decimal places for Ethereum)
+- **Too diverse** in their representations (e.g., Wei vs Satoshi vs token decimals)
+- **Too critical** to risk precision loss or overflow errors
+
+SafeMath addresses these challenges by providing specialized conversion and arithmetic functions that preserve precision, prevent overflow, and optimize for performance.
+
+## Why Use SafeMath?
+
+### 1. **Precision Preservation**
+
+Financial calculations require exact precision. A single rounding error can result in significant financial losses. SafeMath ensures that all conversions maintain the exact precision required for your use case, whether it's 18 decimals for Ethereum, 8 decimals for Morphcore, or custom decimal places for various tokens.
+
+### 2. **Performance Optimization**
+
+Different use cases require different performance characteristics. SafeMath provides multiple implementations optimized for specific scenarios:
+- **Ultra-fast paths** for high-frequency trading operations
+- **Batch operations** for processing large datasets
+- **Memory-efficient** conversions using object pooling
+- **Optimized algorithms** that avoid unnecessary allocations
+
+### 3. **Type Safety and Error Handling**
+
+All SafeMath functions return explicit errors for invalid inputs, preventing silent failures that could lead to incorrect calculations. The library handles edge cases like overflow, underflow, and precision loss gracefully, allowing you to build robust systems.
+
+### 4. **Thread Safety**
+
+All SafeMath functions are pure and thread-safe, making them safe to use in concurrent environments without additional synchronization overhead. This is critical for high-performance trading systems that process thousands of operations per second.
+
+### 5. **Comprehensive Coverage**
+
+SafeMath provides specialized implementations for:
+- Ethereum operations (Wei/Ether conversions)
+- Morphcore operations (Satoshi conversions)
+- Multi-token DEX operations (flexible decimal handling)
+- High-performance orderbook operations (scaled uint64 keys)
+- Financial calculations (APR, compound interest)
+- Cross-chain operations (Wei ↔ Satoshi conversions)
+
+## Making Smart Implementation Decisions
+
+SafeMath provides multiple implementations, each optimized for specific use cases. Choosing the right implementation is crucial for both performance and correctness.
+
+### Understanding the Three Core Implementations
+
+#### 1. **number.go** - Ethereum Performance Specialist
+
+**What it does**: Provides highly optimized Wei/Ether conversions specifically for Ethereum operations.
+
+**When to use**:
+- You're working exclusively with Ethereum (Wei/Ether only)
+- Performance is critical (high-frequency trading, order processing)
+- You need the fastest possible conversion for Ethereum values
+- You're processing real-time market data
+
+**Benefits**:
+- Fastest performance for Ethereum-specific operations
+- Multiple optimization levels (optimized, safe, general)
+- Caching for common operations
+- Minimal memory allocations
+
+**Trade-offs**:
+- Limited to Ethereum only (18 decimals)
+- Less flexible than general-purpose implementations
+
+#### 2. **safemath.go** - General-Purpose Flexibility
+
+**What it does**: Provides flexible conversion functions that work with any decimal precision, making it ideal for multi-token operations.
+
+**When to use**:
+- You're working with multiple tokens with different decimal places
+- You need flexibility to handle various token standards
+- You're building APIs that need to format numbers for display
+- You're performing financial calculations (APR, interest rates)
+- You need string formatting and display functions
+
+**Benefits**:
+- Maximum flexibility for different decimal precisions
+- Comprehensive string formatting capabilities
+- Supports all token types and standards
+- Ideal for API responses and UI display
+
+**Trade-offs**:
+- Slightly slower than specialized implementations
+- More memory allocations than optimized paths
+
+#### 3. **satoshi.go** - Morphcore Performance Specialist
+
+**What it does**: Provides optimized Satoshi conversions (8-decimal precision) for Morphcore operations, with cross-chain support for Wei conversions.
+
+**When to use**:
+- You're working with Morphcore operations (8-decimal precision)
+- You're processing EIP-712 payloads
+- You need cross-chain conversions (Wei ↔ Satoshi)
+- You're building orderbook operations
+- You need batch operations for market data aggregation
+- Performance is critical for payload processing
+
+**Benefits**:
+- Optimized for Morphcore's 8-decimal precision
+- Memory-efficient with sync.Pool
+- Smart normalization (auto-detects input format)
+- Batch operations for performance
+- Cross-chain conversion support
+
+**Trade-offs**:
+- Optimized for 8 decimals (Morphcore standard)
+- Less flexible than safemath.go for arbitrary decimals
+
+#### 4. **scaled_converter.go** - High-Performance Key Operations
+
+**What it does**: Converts large numbers (u256) to scaled uint64 keys for fast sorting, comparisons, and map operations while preserving precision.
+
+**When to use**:
+- You're building high-performance orderbooks
+- You need fast price sorting and comparisons
+- You're implementing risk calculations
+- You're aggregating oracle prices
+- You need efficient map keys for large datasets
+
+**Benefits**:
+- Fastest possible sorting and comparisons (integer arithmetic)
+- No floating-point precision issues
+- Efficient map keys (uint64)
+- Preserves precision for exact calculations
+- Batch operations for large datasets
+
+**Trade-offs**:
+- Requires understanding of scaling concepts
+- Limited to values that fit in uint64 after scaling
+
+### Decision Framework
+
+Use this framework to choose the right implementation:
+
+1. **What is your primary use case?**
+   - Ethereum-only → Use `number.go`
+   - Morphcore operations → Use `satoshi.go`
+   - Multiple tokens → Use `safemath.go`
+   - High-performance sorting/comparison → Use `scaled_converter.go`
+
+2. **What are your performance requirements?**
+   - Ultra-high frequency (microseconds matter) → Use `number.go` or `satoshi.go`
+   - High frequency (milliseconds matter) → Use `scaled_converter.go`
+   - Moderate frequency → Use `safemath.go`
+
+3. **What precision do you need?**
+   - 18 decimals (Ethereum) → Use `number.go`
+   - 8 decimals (Morphcore) → Use `satoshi.go`
+   - Variable decimals → Use `safemath.go`
+   - Scaled keys → Use `scaled_converter.go`
+
+4. **What is your data format?**
+   - EIP-712 payloads → Use `satoshi.go`
+   - JSON API responses → Use `safemath.go`
+   - Orderbook operations → Use `scaled_converter.go`
+   - Ethereum transactions → Use `number.go`
+
+5. **Do you need cross-chain support?**
+   - Yes (Wei ↔ Satoshi) → Use `satoshi.go`
+   - No → Choose based on other factors
+
+### Common Patterns
+
+**Trading Engine**: Use `number.go` for Ethereum operations, `scaled_converter.go` for orderbook price keys
+
+**Multi-Token DEX**: Use `safemath.go` for token conversions, `scaled_converter.go` for price operations
+
+**Morphcore Integration**: Use `satoshi.go` for all Morphcore operations, `scaled_converter.go` for performance-critical paths
+
+**API Layer**: Use `safemath.go` for formatting, `satoshi.go` for Morphcore payloads
+
+**Risk Engine**: Use `scaled_converter.go` for fast calculations, `safemath.go` for exact precision when needed
+
+## Performance Characteristics
+
+Understanding performance characteristics helps you make informed decisions:
+
+- **WeiToEtherOptimized**: Sub-10 nanosecond operations for small values, making it ideal for high-frequency trading
+- **Batch Operations**: Process thousands of conversions efficiently with minimal allocations
+- **Scaled Keys**: Integer arithmetic is orders of magnitude faster than floating-point for sorting and comparisons
+- **Memory Efficiency**: Object pooling and optimized paths reduce garbage collection pressure
+
+## Thread Safety and Concurrency
+
+All SafeMath functions are pure and thread-safe, making them ideal for concurrent systems. The library uses read-only caches and object pooling to ensure safe concurrent access without locks, enabling high-performance parallel processing.
+
+## Precision Considerations
+
+SafeMath handles precision carefully:
+- **float64**: Limited to ~15-17 significant digits (use for display, not exact calculations)
+- **big.Int**: Unlimited precision (use for exact calculations)
+- **big.Float**: High precision for intermediate calculations
+- **Scaled Keys**: Preserves precision while enabling fast operations
+
+The library detects and reports precision loss, allowing you to handle edge cases appropriately.
+
+## Error Handling Philosophy
+
+SafeMath follows a fail-fast philosophy: all functions return explicit errors for invalid inputs, preventing silent failures. Always check errors to ensure calculations succeeded before using results.
+
+## Further Study
+
+To dive deeper into SafeMath and understand how to use it effectively in your system:
+
+### Documentation
+
+- **[Wei Conversions Guide](docs/wei.md)**: Comprehensive guide to Ethereum Wei/Ether conversions, performance characteristics, and optimization strategies
+- **[Satoshi Conversions Guide](docs/satoshi.md)**: Detailed documentation for Morphcore Satoshi operations, cross-chain conversions, and payload processing
+- **[Scaled Converter Guide](docs/scaled_converter.md)**: Complete reference for high-performance scaled key operations, orderbook optimizations, and risk calculations
+- **[SafeMath API Reference](docs/safemath.md)**: Full API documentation for general-purpose multi-token operations
+
+### Design Principles
+
+- **Precision First**: Never sacrifice precision for performance when dealing with financial calculations
+- **Performance Where It Matters**: Use optimized paths for hot code paths, flexible paths for general operations
+- **Type Safety**: Always use the appropriate type for your use case (big.Int for exact, float64 for display)
+- **Error Handling**: Always check errors - precision loss and overflow are real risks
+
+### Best Practices
+
+1. **Choose the Right Implementation**: Match your use case to the appropriate implementation
+2. **Use Batch Operations**: When processing multiple values, use batch functions for better performance
+3. **Handle Errors**: Always check errors - they indicate real problems that need attention
+4. **Profile Your Code**: Use Go's profiling tools to identify hot paths that benefit from optimization
+5. **Test Edge Cases**: Test with very large numbers, very small numbers, and boundary conditions
 
 ## Installation
 
@@ -17,408 +242,13 @@ A high-performance Go library providing safe arithmetic operations for blockchai
 go get github.com/morpheum-labs/safem
 ```
 
-## Quick Start
-
-### Basic Wei/Ether Conversion
-
-```go
-package main
-
-import (
-    "fmt"
-    "math/big"
-    "github.com/morpheum-labs/safem"
-)
-
-func main() {
-    // Convert 1.5 ETH to Wei
-    wei, err := safem.EtherToWei(1.5)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("1.5 ETH = %s Wei\n", wei.String())
-
-    // Convert Wei back to Ether
-    eth, err := safem.WeiToEther(wei)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("%s Wei = %.18f ETH\n", wei.String(), eth)
-}
-```
-
-### Multi-Token Operations
-
-```go
-package main
-
-import (
-    "fmt"
-    "math/big"
-    "github.com/morpheum-labs/safem"
-)
-
-func main() {
-    // USDC has 6 decimals
-    usdcAmount := big.NewInt(1000000) // 1 USDC
-    usdcFloat, err := safem.BigInt2Float(usdcAmount, 6)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("USDC: %s units = %.6f USDC\n", usdcAmount.String(), usdcFloat)
-
-    // ETH has 18 decimals
-    ethAmount := big.NewInt(1500000000000000000) // 1.5 ETH
-    ethFloat, err := safem.BigInt2Float(ethAmount, 18)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("ETH: %s units = %.18f ETH\n", ethAmount.String(), ethFloat)
-}
-```
-
-## API Reference
-
-### Core Functions
-
-#### Wei/Ether Conversions (number.go)
-
-**When to use**: Ethereum-specific operations, performance-critical paths
-
-```go
-// General purpose Wei to Ether conversion
-func WeiToEther(wei *big.Int) (float64, error)
-
-// High-performance Wei to Ether conversion (optimized for small values)
-func WeiToEtherOptimized(wei *big.Int) (float64, error)
-
-// Maximum precision Wei to Ether conversion (for critical calculations)
-func WeiToEtherSafe(wei *big.Int) (float64, error)
-
-// Ether to Wei conversion
-func EtherToWei(ether float64) (*big.Int, error)
-```
-
-#### Multi-Base Conversions (safemath.go)
-
-**When to use**: Multi-token operations, different decimal precisions
-
-```go
-// Convert big.Int to float64 with specified decimal places
-func BigInt2Float(value *big.Int, decimal uint8) (float64, error)
-
-// Convert float64 to big.Int with specified decimal places
-func FloatToBigIntBaseX(value float64, decimal uint8) (*big.Int, error)
-
-// Convert big.Int to string with specified decimal places
-func UnBaseXFloatString(value *big.Int, decimal uint8) (string, error)
-
-// Convert string to big.Int with specified decimal places
-func BigIntByString(value string, decimal uint8) (*big.Int, error)
-```
-
-#### Scaled Uint64 Conversions (scaled_converter.go)
-
-**When to use**: High-performance orderbook operations, risk calculations, oracle price aggregation
-
-**Purpose**: Convert u256 (*big.Int) to u64 (scaled) for fast sorting, comparisons, and map operations while preserving precision for exact calculations.
-
-```go
-// Core conversion: u256 to u64 (scaled)
-func BigIntToScaledUint64(value *big.Int, scale uint64) (uint64, error)
-func ScaledUint64ToBigInt(value uint64, scale uint64) *big.Int
-
-// Price key conversions (most common use case)
-func BigIntToPriceKey(priceBig *big.Int) (uint64, error)
-func PriceKeyToBigInt(priceKey uint64) *big.Int
-func Float64ToPriceKey(price float64) (uint64, error)
-func PriceKeyToFloat64(priceKey uint64) float64
-func StringToPriceKey(priceStr string) (uint64, error)
-
-// Value key conversions (for aggregations)
-func BigIntToValueKey(valueBig *big.Int) (uint64, error)
-func ValueKeyToBigInt(valueKey uint64) *big.Int
-func Float64ToValueKey(value float64) (uint64, error)
-
-// Safe arithmetic operations on keys
-func AddPriceKeys(a, b uint64) (uint64, error)
-func SubtractPriceKeys(a, b uint64) (uint64, error)
-func MultiplyPriceKeys(a, b uint64) (uint64, error)
-func ComparePriceKeys(a, b uint64) int
-
-// Batch operations for performance
-func BatchBigIntToPriceKeys(prices []*big.Int) ([]uint64, error)
-func BatchPriceKeysToBigInt(keys []uint64) []*big.Int
-
-// Advanced operations for risk calculations
-func CalculateMarginRatioKey(equityKey, marginRequirementKey uint64) (uint64, error)
-func IsLiquidatableKey(marginRatioKey, liquidationThresholdKey uint64) bool
-```
-
-**Scaling Constants**:
-- `PriceScale = 1e8` (8 decimal places for prices)
-- `ValueScale = 1e8` (8 decimal places for position values)
-- `RatioScale = 1e6` (6 decimal places for ratios)
-- `QuantityScale = 1e8` (8 decimal places for quantities)
-- `ScoreScale = 1e8` (8 decimal places for ADL scores)
-
-#### APR Calculations
-
-```go
-// Calculate APR for lending/borrowing operations
-func CalculateAPR(principal, interest *big.Int, timeInSeconds int64) (float64, error)
-
-// Calculate compound interest
-func CalculateCompoundInterest(principal *big.Int, rate float64, timeInSeconds int64) (*big.Int, error)
-```
-
-#### BigInt Wrapper
-
-```go
-// Safe BigInt with JSON marshaling/unmarshaling
-type BigInt struct {
-    *big.Int
-}
-
-// Create new BigInt instances
-func NewBigInt(x *big.Int) *BigInt
-func NewBigIntFromString(s string, base int) (*BigInt, bool)
-func NewBigIntFromInt64(x int64) *BigInt
-func NewBigIntFromUint64(x uint64) *BigInt
-```
-
-## Usage Examples
-
-### 1. Trading Engine Operations
-
-```go
-// High-frequency order processing (use number.go for performance)
-func processOrder(weiAmount *big.Int) {
-    // Use optimized conversion for performance
-    eth, err := safem.WeiToEtherOptimized(weiAmount)
-    if err != nil {
-        log.Printf("Conversion error: %v", err)
-        return
-    }
-    
-    // Process order with eth value
-    fmt.Printf("Processing order: %.18f ETH\n", eth)
-}
-```
-
-### 2. Multi-Token DEX Operations
-
-```go
-// Handle different token types with varying decimals
-func calculateSwapRate(tokenA, tokenB *big.Int, decimalsA, decimalsB uint8) (float64, error) {
-    // Convert both tokens to their human-readable amounts
-    amountA, err := safem.BigInt2Float(tokenA, decimalsA)
-    if err != nil {
-        return 0, err
-    }
-    
-    amountB, err := safem.BigInt2Float(tokenB, decimalsB)
-    if err != nil {
-        return 0, err
-    }
-    
-    // Calculate swap rate
-    rate := amountB / amountA
-    return rate, nil
-}
-```
-
-### 3. Lending Platform Calculations
-
-```go
-// Calculate interest for lending operations
-func calculateInterest(principal *big.Int, apr float64, timeInSeconds int64) (*big.Int, error) {
-    // Use APR calculation function
-    interest, err := safem.CalculateCompoundInterest(principal, apr, timeInSeconds)
-    if err != nil {
-        return nil, err
-    }
-    
-    return interest, nil
-}
-```
-
-### 4. API Response Formatting
-
-```go
-// Format token amounts for API responses
-func formatTokenAmount(amount *big.Int, decimals uint8) string {
-    formatted, err := safem.UnBaseXFloatString(amount, decimals)
-    if err != nil {
-        return "0"
-    }
-    return formatted
-}
-```
-
-### 5. High-Performance Orderbook Operations
-
-```go
-// Convert order prices to uint64 keys for fast sorting and map lookups
-func processOrderbookOrder(priceStr string) {
-    // Convert u256 string (from EIP-712) to uint64 key
-    priceKey, err := safem.StringToPriceKey(priceStr)
-    if err != nil {
-        log.Printf("Invalid price: %v", err)
-        return
-    }
-    
-    // Use priceKey for fast map lookups and sorting
-    orderbookMap[priceKey] = order
-    
-    // For exact calculations, convert back to *big.Int
-    exactPrice := safem.PriceKeyToBigInt(priceKey)
-    // Perform precise arithmetic with exactPrice
-}
-
-// Batch conversion for orderbook snapshots
-func getOrderbookDepth(prices []*big.Int) ([]uint64, error) {
-    return safem.BatchBigIntToPriceKeys(prices)
-}
-```
-
-### 6. Risk Engine Calculations
-
-```go
-// Fast liquidation checks using uint64 keys
-func checkLiquidation(equity, marginRequirement *big.Int) bool {
-    equityKey, _ := safem.BigIntToValueKey(equity)
-    marginKey, _ := safem.BigIntToValueKey(marginRequirement)
-    
-    // Calculate margin ratio as uint64 key
-    ratioKey, err := safem.CalculateMarginRatioKey(equityKey, marginKey)
-    if err != nil {
-        return false
-    }
-    
-    // Fast comparison (no float64 precision issues)
-    liquidationThreshold := uint64(1050000) // 1.05 * 1e6
-    return safem.IsLiquidatableKey(ratioKey, liquidationThreshold)
-}
-```
-
-### 7. Oracle Price Aggregation
-
-```go
-// Convert price feeds to keys for fast sorting and aggregation
-func aggregateOraclePrices(prices []float64) (uint64, error) {
-    // Convert all prices to keys
-    keys, err := safem.BatchFloat64ToPriceKeys(prices)
-    if err != nil {
-        return 0, err
-    }
-    
-    // Fast integer sorting (much faster than float64)
-    sort.Slice(keys, func(i, j int) bool {
-        return safem.ComparePriceKeys(keys[i], keys[j]) < 0
-    })
-    
-    // Calculate median using integer arithmetic
-    medianKey := keys[len(keys)/2]
-    return medianKey, nil
-}
-```
-
-### 8. JSON Handling
-
-```go
-// Safe JSON marshaling/unmarshaling of large numbers
-type TokenBalance struct {
-    Address string `json:"address"`
-    Balance safem.BigInt `json:"balance"`
-}
-
-func handleTokenBalance() {
-    balance := safem.BigInt{}
-    balance.SetString("1000000000000000000", 10) // 1 ETH in Wei
-    
-    // Marshal to JSON (outputs as string)
-    jsonData, _ := json.Marshal(TokenBalance{
-        Address: "0x123...",
-        Balance: balance,
-    })
-    
-    // Unmarshal from JSON (handles both string and number inputs)
-    var tokenBalance TokenBalance
-    json.Unmarshal(jsonData, &tokenBalance)
-}
-```
-
-## Performance Comparison
-
-### number.go vs safemath.go
-
-| Use Case | number.go | safemath.go | Recommendation |
-|----------|-----------|-------------|----------------|
-| Wei ↔ Ether | ✅ Optimized | ✅ Flexible | Use number.go for performance |
-| Multi-token | ❌ | ✅ | Use safemath.go |
-| APR calculations | ❌ | ✅ | Use safemath.go |
-| String formatting | ❌ | ✅ | Use safemath.go |
-| Performance | ✅ Excellent | ⚠️ Good | Use number.go for critical paths |
-| Flexibility | ⚠️ Limited | ✅ High | Use safemath.go for general purpose |
-
-### Performance Characteristics
-
-- **WeiToEtherOptimized**: 6.5 ns/op (fast path), 362 ns/op (large values)
-- **WeiToEther**: ~670 ns/op (balanced performance)
-- **WeiToEtherSafe**: ~347 ns/op (maximum precision)
-- **BigInt2Float**: Optimized with caching for bases 14 and 18
-
-## Decision Matrix
-
-### When to Use number.go
-- ✅ Ethereum-specific operations (Wei/Ether only)
-- ✅ Performance-critical paths (trading engines, order processing)
-- ✅ High-frequency operations
-- ✅ Real-time market data processing
-
-### When to Use safemath.go
-- ✅ Multi-token operations with different decimals
-- ✅ Cross-chain operations
-- ✅ Lending/borrowing platforms
-- ✅ API responses and UI display
-- ✅ Financial calculations (APR, interest rates)
-- ✅ String formatting and display
-
-## Error Handling
-
-All functions return errors for invalid inputs. Always check errors:
-
-```go
-result, err := safem.WeiToEther(weiAmount)
-if err != nil {
-    // Handle error appropriately
-    log.Printf("Conversion failed: %v", err)
-    return
-}
-// Use result safely
-```
-
-## Thread Safety
-
-- All functions are pure and thread-safe
-- Cache access is not protected (but caches are read-only after initialization)
-- BigInt wrapper uses sync.Pool for memory efficiency
-
-## Precision Considerations
-
-- **float64 precision**: Limited to ~15-17 significant digits
-- **big.Int precision**: Unlimited precision
-- **big.Float precision**: High precision for intermediate calculations
-- **Precision loss**: Functions return errors when precision loss is detected
-
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+We welcome contributions! Please ensure that:
+1. New functionality includes comprehensive tests
+2. Performance-critical paths are benchmarked
+3. Documentation is updated for new features
+4. Error handling follows the library's philosophy
 
 ## License
 

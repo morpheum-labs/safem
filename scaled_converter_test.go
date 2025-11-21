@@ -22,7 +22,7 @@ func TestBigIntToScaledUint64(t *testing.T) {
 	}{
 		{
 			name:        "normal conversion",
-			value:       big.NewInt(2000000000000000000), // 2000.0 with 18 decimals
+			value:       big.NewInt(2000), // 2000.0 (unscaled)
 			scale:       PriceScale,
 			expected:    200000000000, // 2000.0 * 1e8
 			expectError: false,
