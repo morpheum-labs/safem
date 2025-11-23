@@ -53,7 +53,7 @@ const (
     PriceScale    = 1e8  // 8 decimal places for prices
     ValueScale    = 1e8  // 8 decimal places for values
     QuantityScale = 1e8  // 8 decimal places for quantities
-    RatioScale    = 1e6  // 6 decimal places for ratios
+    RatioScale    = 1e8  // 8 decimal places for ratios (changed from 1e6 to 1e8 for unified precision)
     ScoreScale    = 1e8  // 8 decimal places for scores
 )
 
@@ -196,6 +196,120 @@ func StringToPriceKey(priceStr string) (uint64, error)
 ```go
 priceStr := "5000000000000" // From EIP-712 payload
 priceKey, err := StringToPriceKey(priceStr)
+if err != nil {
+    // Handle error
+}
+```
+
+#### BigIntToPriceKeyFromSatoshi
+
+```go
+func BigIntToPriceKeyFromSatoshi(priceBig *big.Int) (uint64, error)
+```
+
+**Purpose**: Convert *big.Int (already in satoshi format) to uint64 key without double scaling
+
+**Use When**:
+- Converting satoshi strings from proto to uint64 keys for orderbook
+- Input is already in satoshi format (1e8), not decimal
+- Avoiding double scaling when data is already scaled
+
+**CRITICAL**: Input must already be in satoshi format (1e8), not decimal. This function does NOT scale - assumes input is already scaled by 1e8.
+
+**Example**:
+```go
+priceBig := big.NewInt(5000000000000) // 50000.00 in satoshi (already scaled)
+priceKey, err := BigIntToPriceKeyFromSatoshi(priceBig)
+if err != nil {
+    // Handle error
+}
+// Returns: 5000000000000, nil (no scaling, used directly)
+```
+
+### Quantity Key Functions
+
+#### BigIntToQuantityKey
+
+```go
+func BigIntToQuantityKey(quantityBig *big.Int) (uint64, error)
+```
+
+**Purpose**: Convert *big.Int quantity to uint64 key
+
+**Use When**:
+- Converting order quantities for orderbook operations
+- Quantity aggregation
+
+**Example**:
+```go
+quantityBig := big.NewInt(1000000000000000000) // 1.0 with 18 decimals
+quantityKey, err := BigIntToQuantityKey(quantityBig)
+if err != nil {
+    // Handle error
+}
+```
+
+#### BigIntToQuantityKeyFromSatoshi
+
+```go
+func BigIntToQuantityKeyFromSatoshi(quantityBig *big.Int) (uint64, error)
+```
+
+**Purpose**: Convert *big.Int (already in satoshi format) to uint64 key without double scaling
+
+**Use When**:
+- Converting satoshi strings from proto to uint64 keys for orderbook
+- Input is already in satoshi format (1e8), not decimal
+- Avoiding double scaling when data is already scaled
+
+**CRITICAL**: Input must already be in satoshi format (1e8), not decimal. This function does NOT scale - assumes input is already scaled by 1e8.
+
+**Example**:
+```go
+quantityBig := big.NewInt(100000000) // 1.0 in satoshi (already scaled)
+quantityKey, err := BigIntToQuantityKeyFromSatoshi(quantityBig)
+if err != nil {
+    // Handle error
+}
+// Returns: 100000000, nil (no scaling, used directly)
+```
+
+#### QuantityKeyToBigInt
+
+```go
+func QuantityKeyToBigInt(quantityKey uint64) *big.Int
+```
+
+**Purpose**: Convert uint64 quantity key back to *big.Int
+
+**Use When**:
+- Converting keys back to exact quantities for calculations
+- Precise quantity arithmetic
+
+**Example**:
+```go
+quantityKey := uint64(100000000) // 1.0 * 1e8
+quantityBig := QuantityKeyToBigInt(quantityKey)
+// Returns: *big.Int representing 1.0
+```
+
+#### Float64ToQuantityKey
+
+```go
+func Float64ToQuantityKey(quantity float64) (uint64, error)
+```
+
+**Purpose**: Convert float64 quantity to uint64 key
+
+**Use When**:
+- User input processing
+- API requests
+- Display value conversion
+
+**Example**:
+```go
+userQuantity := 0.5
+quantityKey, err := Float64ToQuantityKey(userQuantity)
 if err != nil {
     // Handle error
 }
@@ -503,6 +617,33 @@ totalQty := ScaledUint64ToFloat64(totalQuantity, QuantityScale)
 fmt.Printf("Total at $%.2f: %.8f BTC\n", PriceKeyToFloat64(priceKey), totalQty)
 ```
 
+### Pattern 6: Satoshi Format Conversion (Proto Integration)
+
+```go
+// When receiving data from proto that's already in satoshi format
+// Use FromSatoshi functions to avoid double scaling
+
+// ❌ WRONG: Double scaling (scales twice)
+priceBig := big.NewInt(5000000000000) // Already in satoshi from proto
+priceKey, _ := BigIntToPriceKey(priceBig) // Scales again by 1e8 - WRONG!
+
+// ✅ CORRECT: No scaling (already satoshi)
+priceBig := big.NewInt(5000000000000) // Already in satoshi from proto
+priceKey, err := BigIntToPriceKeyFromSatoshi(priceBig) // No scaling - CORRECT!
+if err != nil {
+    // Handle error
+}
+// Returns: 5000000000000 (used directly, no scaling)
+
+// Same for quantities
+quantityBig := big.NewInt(100000000) // Already in satoshi from proto
+quantityKey, err := BigIntToQuantityKeyFromSatoshi(quantityBig)
+if err != nil {
+    // Handle error
+}
+// Returns: 100000000 (used directly, no scaling)
+```
+
 ## Performance Characteristics
 
 ### Why Scaled Keys are Fast
@@ -559,6 +700,37 @@ if err := ValidatePriceKey(priceKey); err != nil {
     return fmt.Errorf("invalid price key: %w", err)
 }
 ```
+
+## When to Use Satoshi Functions
+
+### BigIntToPriceKey vs BigIntToPriceKeyFromSatoshi
+
+**Use `BigIntToPriceKey` when**:
+- ✅ Converting from decimal format (e.g., 2000.0 with 18 decimals)
+- ✅ Converting from user input or API values
+- ✅ Input needs to be scaled by 1e8
+
+**Use `BigIntToPriceKeyFromSatoshi` when**:
+- ✅ Input is already in satoshi format (already scaled by 1e8)
+- ✅ Converting from proto messages that use satoshi strings
+- ✅ Avoiding double scaling (input is already scaled)
+
+**Example**:
+```go
+// From proto (already satoshi): "5000000000000" (50000.00 * 1e8)
+priceBig, _ := BigIntByString("5000000000000")
+priceKey, _ := BigIntToPriceKeyFromSatoshi(priceBig) // No scaling
+
+// From decimal format: 50000.0 (needs scaling)
+priceBig := big.NewInt(50000) // Decimal format
+priceKey, _ := BigIntToPriceKey(priceBig) // Scales by 1e8
+```
+
+### BigIntToQuantityKey vs BigIntToQuantityKeyFromSatoshi
+
+Same logic applies to quantity conversions:
+- Use `BigIntToQuantityKey` for decimal format (needs scaling)
+- Use `BigIntToQuantityKeyFromSatoshi` for satoshi format (already scaled)
 
 ## When to Use vs Other Packages
 

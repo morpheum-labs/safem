@@ -451,6 +451,170 @@ func TestStringToPriceKey(t *testing.T) {
 	}
 }
 
+func TestBigIntToPriceKeyFromSatoshi(t *testing.T) {
+	tests := []struct {
+		name        string
+		priceBig    *big.Int
+		expected    uint64
+		expectError bool
+		errorType   error
+	}{
+		{
+			name:        "normal satoshi price",
+			priceBig:    big.NewInt(5000000000000), // 50000.00 in satoshi (already scaled)
+			expected:    5000000000000,              // No scaling, used directly
+			expectError: false,
+		},
+		{
+			name:        "zero satoshi price",
+			priceBig:    big.NewInt(0),
+			expected:    0,
+			expectError: false,
+		},
+		{
+			name:        "nil price",
+			priceBig:    nil,
+			expected:    0,
+			expectError: true,
+			errorType:   ErrInvalidInput,
+		},
+		{
+			name:        "negative price",
+			priceBig:    big.NewInt(-100),
+			expected:    0,
+			expectError: true,
+			errorType:   ErrUnderflow,
+		},
+		{
+			name:        "overflow - exceeds uint64",
+			priceBig:    new(big.Int).SetUint64(math.MaxUint64).Add(new(big.Int).SetUint64(math.MaxUint64), big.NewInt(1)),
+			expected:    0,
+			expectError: true,
+			errorType:   ErrOverflow,
+		},
+		{
+			name:        "max uint64 value",
+			priceBig:    new(big.Int).SetUint64(math.MaxUint64),
+			expected:    math.MaxUint64,
+			expectError: false,
+		},
+		{
+			name:        "small satoshi value",
+			priceBig:    big.NewInt(1), // 0.00000001 in satoshi
+			expected:    1,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := BigIntToPriceKeyFromSatoshi(tt.priceBig)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if tt.errorType != nil {
+					if !errors.Is(err, tt.errorType) {
+						t.Errorf("Expected error type %v, got %v", tt.errorType, err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result != tt.expected {
+					t.Errorf("Expected %d, got %d", tt.expected, result)
+				}
+			}
+		})
+	}
+}
+
+func TestBigIntToQuantityKeyFromSatoshi(t *testing.T) {
+	tests := []struct {
+		name        string
+		quantityBig *big.Int
+		expected    uint64
+		expectError bool
+		errorType   error
+	}{
+		{
+			name:        "normal satoshi quantity",
+			quantityBig: big.NewInt(100000000), // 1.0 in satoshi (already scaled)
+			expected:    100000000,              // No scaling, used directly
+			expectError: false,
+		},
+		{
+			name:        "zero satoshi quantity",
+			quantityBig: big.NewInt(0),
+			expected:    0,
+			expectError: false,
+		},
+		{
+			name:        "nil quantity",
+			quantityBig: nil,
+			expected:    0,
+			expectError: true,
+			errorType:   ErrInvalidInput,
+		},
+		{
+			name:        "negative quantity",
+			quantityBig: big.NewInt(-100),
+			expected:    0,
+			expectError: true,
+			errorType:   ErrUnderflow,
+		},
+		{
+			name:        "overflow - exceeds uint64",
+			quantityBig: new(big.Int).SetUint64(math.MaxUint64).Add(new(big.Int).SetUint64(math.MaxUint64), big.NewInt(1)),
+			expected:    0,
+			expectError: true,
+			errorType:   ErrOverflow,
+		},
+		{
+			name:        "max uint64 value",
+			quantityBig: new(big.Int).SetUint64(math.MaxUint64),
+			expected:    math.MaxUint64,
+			expectError: false,
+		},
+		{
+			name:        "small satoshi value",
+			quantityBig: big.NewInt(1), // 0.00000001 in satoshi
+			expected:    1,
+			expectError: false,
+		},
+		{
+			name:        "large satoshi quantity",
+			quantityBig: big.NewInt(2100000000000000), // 21,000,000 BTC in satoshi
+			expected:    2100000000000000,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := BigIntToQuantityKeyFromSatoshi(tt.quantityBig)
+
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				} else if tt.errorType != nil {
+					if !errors.Is(err, tt.errorType) {
+						t.Errorf("Expected error type %v, got %v", tt.errorType, err)
+					}
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if result != tt.expected {
+					t.Errorf("Expected %d, got %d", tt.expected, result)
+				}
+			}
+		})
+	}
+}
+
 // ============================================================================
 // Test Safe Arithmetic Operations
 // ============================================================================
