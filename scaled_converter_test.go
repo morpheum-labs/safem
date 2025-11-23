@@ -1028,20 +1028,20 @@ func TestIsLiquidatableKey(t *testing.T) {
 	}{
 		{
 			name:                    "liquidatable (ratio below threshold)",
-			marginRatioKey:          1000000, // 1.0
-			liquidationThresholdKey: 1050000, // 1.05
+			marginRatioKey:          100000000, // 1.0 * 1e8
+			liquidationThresholdKey: 105000000, // 1.05 * 1e8
 			expected:                true,
 		},
 		{
 			name:                    "not liquidatable (ratio above threshold)",
-			marginRatioKey:          1200000, // 1.2
-			liquidationThresholdKey: 1050000, // 1.05
+			marginRatioKey:          120000000, // 1.2 * 1e8
+			liquidationThresholdKey: 105000000, // 1.05 * 1e8
 			expected:                false,
 		},
 		{
 			name:                    "at threshold (not liquidatable)",
-			marginRatioKey:          1050000, // 1.05
-			liquidationThresholdKey: 1050000, // 1.05
+			marginRatioKey:          105000000, // 1.05 * 1e8
+			liquidationThresholdKey: 105000000, // 1.05 * 1e8
 			expected:                false,
 		},
 	}
