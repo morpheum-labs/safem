@@ -30,9 +30,11 @@ Different scale factors for different use cases:
 PriceScale    = 1e8  // Prices: 8 decimal places
 ValueScale    = 1e8  // Position values: 8 decimal places
 QuantityScale = 1e8  // Order quantities: 8 decimal places
-RatioScale    = 1e6  // Ratios: 6 decimal places (margin ratios, risk factors)
+RatioScale    = 1e8  // Ratios: 8 decimal places (margin ratios, risk factors) - CRITICAL: Changed from 1e6 to 1e8 for unified precision
 ScoreScale    = 1e8  // ADL scores: 8 decimal places
 ```
+
+**IMPORTANT**: `RatioScale` was updated from `1e6` to `1e8` to align with satoshi precision across all scales. This provides 100x more precision (0.00000001 vs 0.000001) and prevents conversion errors between different scales.
 
 ### Why Scaled Keys?
 
