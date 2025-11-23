@@ -265,6 +265,36 @@ func BigIntToPriceKey(priceBig *big.Int) (uint64, error) {
 	return BigIntToScaledUint64(priceBig, PriceScale)
 }
 
+// BigIntToPriceKeyFromSatoshi converts *big.Int (already in satoshi format) to uint64 key
+//
+// PURPOSE: Handle satoshi format from proto without double scaling
+// USAGE: Converting satoshi strings from proto to uint64 keys for orderbook
+// CRITICAL: Input must already be in satoshi format (1e8), not decimal
+// DESIGN: Does NOT scale - assumes input is already scaled by 1e8
+//
+// Example:
+//
+//	priceBig := big.NewInt(5000000000000) // 50000.00 in satoshi
+//	priceKey, err := BigIntToPriceKeyFromSatoshi(priceBig)
+//	// Returns 5000000000000, nil (no scaling, used directly)
+func BigIntToPriceKeyFromSatoshi(priceBig *big.Int) (uint64, error) {
+	if priceBig == nil {
+		return 0, ErrInvalidInput
+	}
+
+	if priceBig.Sign() < 0 {
+		return 0, fmt.Errorf("%w: price cannot be negative: %s", ErrUnderflow, priceBig.String())
+	}
+
+	// Check if satoshi value fits in uint64 (no scaling needed - already satoshi)
+	if !priceBig.IsUint64() {
+		return 0, fmt.Errorf("%w: satoshi value %s exceeds uint64 (max: %d)",
+			ErrOverflow, priceBig.String(), uint64(math.MaxUint64))
+	}
+
+	return priceBig.Uint64(), nil
+}
+
 // PriceKeyToBigInt converts uint64 price key back to *big.Int
 //
 // PURPOSE: Convert keys back to exact prices for calculations
@@ -337,6 +367,36 @@ func ValueKeyToFloat64(valueKey uint64) float64 {
 // BigIntToQuantityKey converts *big.Int quantity to uint64 key
 func BigIntToQuantityKey(quantityBig *big.Int) (uint64, error) {
 	return BigIntToScaledUint64(quantityBig, QuantityScale)
+}
+
+// BigIntToQuantityKeyFromSatoshi converts *big.Int (already in satoshi format) to uint64 key
+//
+// PURPOSE: Handle satoshi format from proto without double scaling
+// USAGE: Converting satoshi strings from proto to uint64 keys for orderbook
+// CRITICAL: Input must already be in satoshi format (1e8), not decimal
+// DESIGN: Does NOT scale - assumes input is already scaled by 1e8
+//
+// Example:
+//
+//	quantityBig := big.NewInt(100000000) // 1.0 in satoshi
+//	quantityKey, err := BigIntToQuantityKeyFromSatoshi(quantityBig)
+//	// Returns 100000000, nil (no scaling, used directly)
+func BigIntToQuantityKeyFromSatoshi(quantityBig *big.Int) (uint64, error) {
+	if quantityBig == nil {
+		return 0, ErrInvalidInput
+	}
+
+	if quantityBig.Sign() < 0 {
+		return 0, fmt.Errorf("%w: quantity cannot be negative: %s", ErrUnderflow, quantityBig.String())
+	}
+
+	// Check if satoshi value fits in uint64 (no scaling needed - already satoshi)
+	if !quantityBig.IsUint64() {
+		return 0, fmt.Errorf("%w: satoshi value %s exceeds uint64 (max: %d)",
+			ErrOverflow, quantityBig.String(), uint64(math.MaxUint64))
+	}
+
+	return quantityBig.Uint64(), nil
 }
 
 // QuantityKeyToBigInt converts uint64 quantity key back to *big.Int
