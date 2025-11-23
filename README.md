@@ -140,6 +140,28 @@ SafeMath provides multiple implementations, each optimized for specific use case
 - Requires understanding of scaling concepts
 - Limited to values that fit in uint64 after scaling
 
+#### 5. **precise_math.go** - Precision-Preserving Financial Calculations
+
+**What it does**: Provides precision-preserving mathematical operations with configurable rounding modes for unhackable calculations.
+
+**When to use**:
+- Calculating trading fees (rounds UP)
+- Calculating PnL for positions (profits round DOWN, losses round UP)
+- Calculating margin ratios (rounds DOWN, conservative)
+- Calculating liquidation prices (rounds DOWN, earlier liquidation)
+- Any financial calculation requiring unhackable rounding
+
+**Benefits**:
+- Unhackable rounding prevents rounding attacks
+- Maintains 1e8 (satoshi) precision throughout
+- Thread-safe and optimized for high-frequency operations
+- Comprehensive error handling
+- Specialized functions for common calculations
+
+**Trade-offs**:
+- Requires understanding of rounding directions
+- Uses big.Int (slightly slower than native types, but necessary for precision)
+
 ### Decision Framework
 
 Use this framework to choose the right implementation:
@@ -147,6 +169,7 @@ Use this framework to choose the right implementation:
 1. **What is your primary use case?**
    - Ethereum-only → Use `number.go`
    - Morphcore operations → Use `satoshi.go`
+   - Financial calculations with rounding → Use `precise_math.go`
    - Multiple tokens → Use `safemath.go`
    - High-performance sorting/comparison → Use `scaled_converter.go`
 
