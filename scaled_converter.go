@@ -54,9 +54,11 @@ const (
 	// ValueScale: 8 decimal places for position values and aggregations
 	ValueScale = 1e8
 
-	// RatioScale: 6 decimal places for ratios (e.g., 1.05 = 1050000)
+	// RatioScale: 8 decimal places for ratios (satoshi precision, aligned with other scales)
 	// Used for margin ratios, risk factors, leverage calculations
-	RatioScale = 1e6
+	// CRITICAL: Changed from 1e6 to 1e8 for unified precision across all scales
+	// This provides 100x more precision (0.00000001 vs 0.000001) and prevents conversion errors
+	RatioScale = 1e8
 
 	// QuantityScale: 8 decimal places for order quantities
 	QuantityScale = 1e8
@@ -561,6 +563,12 @@ func ValidateValueKey(valueKey uint64) error {
 // PURPOSE: Fast margin ratio comparison for liquidation checks
 // USAGE: Cross-margin portfolio, liquidation engine, risk factor calculations
 // CRITICAL: Used in high-frequency risk checks
+//
+// DESIGN NOTES:
+// - Uses RatioScale = 1e8 (satoshi precision) for consistency with other scales
+// - Rounding: Always rounds DOWN (truncates) via big.Int.Div() for conservative risk assessment
+// - Conservative rounding ensures earlier liquidation detection, reducing risk exposure
+// - This is a standard risk management practice to err on the side of caution
 func CalculateMarginRatioKey(equityKey, marginRequirementKey uint64) (uint64, error) {
 	if marginRequirementKey == 0 {
 		return 0, ErrDivisionByZero
@@ -572,6 +580,7 @@ func CalculateMarginRatioKey(equityKey, marginRequirementKey uint64) (uint64, er
 
 	// Calculate ratio: (equity / margin) * RatioScale
 	// Multiply equity by scale first to maintain precision
+	// CRITICAL: big.Int.Div() truncates (rounds DOWN), providing conservative risk assessment
 	equityBig.Mul(equityBig, ratioScaleBig)
 	result := new(big.Int).Div(equityBig, marginBig)
 

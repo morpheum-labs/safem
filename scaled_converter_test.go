@@ -809,14 +809,14 @@ func TestCalculateMarginRatioKey(t *testing.T) {
 	}{
 		{
 			name:                 "normal ratio calculation",
-			equityKey:            1200000000, // 1200.0 * 1e6 (using value scale for equity)
-			marginRequirementKey: 1000000000, // 1000.0 * 1e6
-			expected:             1200000,    // 1.2 * 1e6
+			equityKey:            120000000000, // 1200.0 * 1e8 (using value scale for equity)
+			marginRequirementKey: 100000000000, // 1000.0 * 1e8
+			expected:             120000000,    // 1.2 * 1e8
 			expectError:          false,
 		},
 		{
 			name:                 "division by zero",
-			equityKey:            1200000000,
+			equityKey:            120000000000,
 			marginRequirementKey: 0,
 			expected:             0,
 			expectError:          true,
@@ -824,9 +824,9 @@ func TestCalculateMarginRatioKey(t *testing.T) {
 		},
 		{
 			name:                 "ratio less than 1",
-			equityKey:            500000000,  // 500.0
-			marginRequirementKey: 1000000000, // 1000.0
-			expected:             500000,     // 0.5 * 1e6
+			equityKey:            50000000000,  // 500.0 * 1e8
+			marginRequirementKey: 100000000000, // 1000.0 * 1e8
+			expected:             50000000,    // 0.5 * 1e8
 			expectError:          false,
 		},
 	}
