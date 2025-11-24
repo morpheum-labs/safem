@@ -89,11 +89,13 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"sync"
 )
 
 // Precomputed powers of 10 for common decimals to avoid repeated Exp calls
 // CRITICAL: These are pre-computed at package initialization for performance
 // Bases 14 and 18 are most commonly used in blockchain operations
+// THREAD-SAFE: Protected by pow10CacheMutex for concurrent access
 var (
 	pow10Cache = map[int64]*big.Int{
 		14: new(big.Int).Exp(big.NewInt(10), big.NewInt(14), nil), // Common for stablecoins
@@ -103,6 +105,7 @@ var (
 		14: new(big.Float).SetInt(pow10Cache[14]),
 		18: new(big.Float).SetInt(pow10Cache[18]),
 	}
+	pow10CacheMutex sync.RWMutex // Protects concurrent access to pow10Cache and pow10FloatCache
 )
 
 // Error definitions for consistent error handling across the package
@@ -179,12 +182,21 @@ func BigInt2BigFloat(i *big.Int, decimal uint8) *big.Float {
 	fi := new(big.Float).SetInt(i)
 
 	// Get cached divisor or compute on-the-fly
+	pow10CacheMutex.RLock()
 	div, ok := pow10FloatCache[int64(decimal)]
+	pow10CacheMutex.RUnlock()
+	
 	if !ok {
-		// Compute and cache for future use
-		divInt := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimal)), nil)
-		div = new(big.Float).SetInt(divInt)
-		pow10FloatCache[int64(decimal)] = div
+		// Compute and cache (write lock)
+		pow10CacheMutex.Lock()
+		// Double-check after acquiring write lock
+		div, ok = pow10FloatCache[int64(decimal)]
+		if !ok {
+			divInt := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimal)), nil)
+			div = new(big.Float).SetInt(divInt)
+			pow10FloatCache[int64(decimal)] = div
+		}
+		pow10CacheMutex.Unlock()
 	}
 
 	return new(big.Float).Quo(fi, div)
@@ -308,11 +320,21 @@ func FloatToBigIntBaseX(val float64, y int64) *big.Int {
 
 	bigval := new(big.Float).SetFloat64(val)
 
-	// Get cached multiplier or compute on-the-fly
+	// Get cached multiplier or compute on-the-fly (thread-safe)
+	pow10CacheMutex.RLock()
 	k, ok := pow10Cache[y]
+	pow10CacheMutex.RUnlock()
+	
 	if !ok {
-		k = new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
-		pow10Cache[y] = k
+		// Compute and cache (write lock)
+		pow10CacheMutex.Lock()
+		// Double-check after acquiring write lock
+		k, ok = pow10Cache[y]
+		if !ok {
+			k = new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
+			pow10Cache[y] = k
+		}
+		pow10CacheMutex.Unlock()
 	}
 
 	coin := new(big.Float).SetInt(k)
@@ -376,9 +398,15 @@ func BigIntBaseX(f float64, y int64) *big.Int {
 	}
 
 	// Fast path for small y (<=14) and small f that fits in int64
-	if y <= 14 && f < math.MaxInt64/float64(pow10Cache[y].Int64()) {
-		k := pow10Cache[y].Int64()
-		return big.NewInt(int64(f * float64(k)))
+	if y <= 14 {
+		pow10CacheMutex.RLock()
+		cached, ok := pow10Cache[y]
+		pow10CacheMutex.RUnlock()
+		
+		if ok && f < math.MaxInt64/float64(cached.Int64()) {
+			k := cached.Int64()
+			return big.NewInt(int64(f * float64(k)))
+		}
 	}
 
 	// Slow path for precision-critical cases
@@ -417,11 +445,21 @@ func UnBaseX(f *big.Int, y int64) *big.Int {
 		return big.NewInt(0)
 	}
 
-	// Get cached divisor or compute on-the-fly
+	// Get cached divisor or compute on-the-fly (thread-safe)
+	pow10CacheMutex.RLock()
 	k, ok := pow10Cache[y]
+	pow10CacheMutex.RUnlock()
+	
 	if !ok {
-		k = new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
-		pow10Cache[y] = k
+		// Compute and cache (write lock)
+		pow10CacheMutex.Lock()
+		// Double-check after acquiring write lock
+		k, ok = pow10Cache[y]
+		if !ok {
+			k = new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
+			pow10Cache[y] = k
+		}
+		pow10CacheMutex.Unlock()
 	}
 
 	return new(big.Int).Div(f, k)
@@ -466,11 +504,21 @@ func UnBaseXFloatString(f *big.Int, y int64, show_dec int) string {
 	flo := new(big.Float).SetInt(f)
 
 	// Get cached divisor or compute on-the-fly
+	pow10CacheMutex.RLock()
 	div, ok := pow10FloatCache[y]
+	pow10CacheMutex.RUnlock()
+	
 	if !ok {
-		divInt := new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
-		div = new(big.Float).SetInt(divInt)
-		pow10FloatCache[y] = div
+		// Compute and cache (write lock)
+		pow10CacheMutex.Lock()
+		// Double-check after acquiring write lock
+		div, ok = pow10FloatCache[y]
+		if !ok {
+			divInt := new(big.Int).Exp(big.NewInt(10), big.NewInt(y), nil)
+			div = new(big.Float).SetInt(divInt)
+			pow10FloatCache[y] = div
+		}
+		pow10CacheMutex.Unlock()
 	}
 
 	flo.Quo(flo, div)
