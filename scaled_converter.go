@@ -219,8 +219,14 @@ func Float64ToScaledUint64(value float64, scale uint64, maxValue float64) (uint6
 	}
 
 	// Convert to *big.Int first for precision (avoids float64 precision issues)
-	// Note: FloatToBigIntBaseX takes int64, so we cast scale
-	valueBig := FloatToBigIntBaseX(value, int64(scale))
+	// FIX: Multiply by scale directly, not use as exponent!
+	// scale is already the multiplier (e.g., 100000000 for 1e8)
+	valueFlt := new(big.Float).SetFloat64(value)
+	scaleFlt := new(big.Float).SetUint64(scale)
+	valueFlt.Mul(valueFlt, scaleFlt)
+	
+	valueBig := new(big.Int)
+	valueFlt.Int(valueBig)
 
 	// Check overflow
 	if !valueBig.IsUint64() {
