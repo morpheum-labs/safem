@@ -116,7 +116,7 @@ func FloatToBigIntBaseX(val float64, y int64) *big.Int
 **Purpose**: High-precision float-to-integer conversion
 
 **Use When**:
-- Converting user input amounts to token units
+- Converting address input amounts to token units
 - Need specified decimal precision
 - Multi-token operations
 

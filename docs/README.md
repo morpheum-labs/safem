@@ -123,7 +123,7 @@ graph TD
 - Morphcore financial exchange operations
 - EIP-712 payload processing
 - Cross-chain operations
-- User input/output formatting
+- Address input/output formatting
 
 [Read Full Documentation →](./satoshi.md)
 
@@ -168,7 +168,7 @@ graph TD
 ### Pattern 1: Order Submission
 
 ```go
-// User input
+// Address input
 price := 50000.0
 quantity := 0.1
 

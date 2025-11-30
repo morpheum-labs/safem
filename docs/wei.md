@@ -9,7 +9,7 @@ The `wei.go` file provides Ethereum-specific Wei (1e18) to Ether conversion func
 - **Ethereum Operations**: Convert between Wei and Ether for blockchain transactions
 - **Performance Optimization**: Fast-path conversions for high-frequency operations
 - **Precision Safety**: Multiple conversion strategies for different precision requirements
-- **User Interface**: Convert display values to/from blockchain format
+- **Address Interface**: Convert display values to/from blockchain format
 
 ## Key Concepts
 
@@ -46,7 +46,7 @@ func WeiToEther(wei *big.Int) (float64, error)
 
 **Use When**:
 - API responses and logging
-- User interface displays
+- Address interface displays
 - General calculations
 - Balanced performance and precision needed
 
@@ -140,7 +140,7 @@ func EtherToWei(ether float64) (*big.Int, error)
 **Purpose**: Convert human-readable Ether values to Wei
 
 **Use When**:
-- User input processing
+- Address input processing
 - Configuration parsing
 - API request processing
 - Order placement
@@ -155,7 +155,7 @@ func EtherToWei(ether float64) (*big.Int, error)
 
 **Example**:
 ```go
-// User enters amount in Ether
+// Address enters amount in Ether
 userInputEth := 2.5
 amountWei, err := EtherToWei(userInputEth)
 if err != nil {
@@ -166,7 +166,7 @@ if err != nil {
 
 ## Usage Patterns
 
-### Pattern 1: Display User Balance
+### Pattern 1: Display Address Balance
 
 ```go
 // Get balance from blockchain (in Wei)
@@ -212,10 +212,10 @@ if err != nil {
 reportSettlement(totalEth)
 ```
 
-### Pattern 4: User Input Processing
+### Pattern 4: Address Input Processing
 
 ```go
-// User enters amount in UI
+// Address enters amount in UI
 userInput := 1.5 // Ether
 
 // Convert to Wei for transaction
@@ -361,7 +361,7 @@ See `wei_examples.go` for comprehensive examples including:
 - Basic conversions
 - High-frequency operations
 - Critical financial calculations
-- User input processing
+- Address input processing
 - Order submission
 - Balance checking
 - Gas fee calculations

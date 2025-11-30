@@ -62,7 +62,7 @@ func DecimalToSatoshi(decimal float64) string
 **Use When**:
 - Order submission payloads
 - EIP-712 signature construction
-- User input processing
+- Address input processing
 - Price/quantity formatting
 
 **Performance**: Fast path for small values, uses big.Float for precision
@@ -86,7 +86,7 @@ func SatoshiToDecimal(satoshiStr string) (float64, error)
 - API responses
 - UI display
 - Logging
-- User-facing values
+- Address-facing values
 
 **Example**:
 ```go
@@ -211,7 +211,7 @@ func NormalizeToSatoshi(value interface{}) (string, error)
 **Use When**:
 - Payload processing with unknown input format
 - API parsing
-- User input handling
+- Address input handling
 - Auto-detecting Wei vs Satoshi format
 
 **Accepts**:
@@ -287,7 +287,7 @@ if err != nil {
 ### Pattern 1: Order Submission
 
 ```go
-// User input from UI
+// Address input from UI
 orderPrice := 50000.0   // $50,000
 orderQuantity := 0.1    // 0.1 BTC
 
@@ -305,7 +305,7 @@ payload := map[string]interface{}{
 ### Pattern 2: Cross-Chain Token Bridge
 
 ```go
-// User wants to bridge tokens from Ethereum
+// Address wants to bridge tokens from Ethereum
 ethereumBalanceWei := "1000000000000000000000" // 1000 tokens
 
 // Convert to Morphcore format
@@ -323,8 +323,8 @@ processMorphcoreTransaction(morphcoreBalanceSatoshi)
 ```go
 // Payload data from different sources
 payloadData := map[string]interface{}{
-    "price":    "50000.0",              // User input (decimal string)
-    "quantity": 0.1,                    // User input (float64)
+    "price":    "50000.0",              // Address input (decimal string)
+    "quantity": 0.1,                    // Address input (float64)
     "amount":   "5000000000000",        // Already satoshi
     "fee":      "500000000000000000000", // Wei format (from Ethereum)
 }
@@ -449,7 +449,7 @@ if isCriticalCalculation {
 **Use `satoshi.go` when**:
 - ✅ String-based conversions (EIP-712 payloads)
 - ✅ Cross-chain conversions
-- ✅ User input/output formatting
+- ✅ Address input/output formatting
 
 **Use `scaled_converter.go` when**:
 - ✅ High-performance orderbook operations

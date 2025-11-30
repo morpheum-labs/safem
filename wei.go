@@ -12,7 +12,7 @@ import (
 // - Use for general-purpose Wei to Ether conversion
 // - Suitable for most blockchain applications where performance and precision are balanced
 // - Good choice when you need reliable conversion without strict performance requirements
-// - Recommended for: API responses, logging, general calculations, user interface displays
+// - Recommended for: API responses, logging, general calculations, address interface displays
 // - Avoid for: high-frequency trading, real-time order processing, critical financial calculations
 //
 // TRADE-OFFS:
@@ -166,10 +166,10 @@ func WeiToEtherSafe(wei *big.Int) (float64, error) {
 // EtherToWei converts Ether (float64) to Wei (big.Int).
 //
 // USAGE INTENTION:
-// - Use for converting user input, display values, or configuration back to Wei
-// - Ideal for: user interface inputs, configuration parsing, API request processing
+// - Use for converting address input, display values, or configuration back to Wei
+// - Ideal for: address interface inputs, configuration parsing, API request processing
 // - Best choice when you need to convert human-readable Ether values to Wei
-// - Recommended for: order placement, deposit calculations, user balance updates
+// - Recommended for: order placement, deposit calculations, address balance updates
 // - Avoid for: high-frequency operations, when you already have Wei values
 //
 // TRADE-OFFS:
@@ -177,7 +177,7 @@ func WeiToEtherSafe(wei *big.Int) (float64, error) {
 // - Tolerates small remainders (< 0.5 Wei) to handle floating-point imprecision
 // - Higher memory usage (248 B/op) due to big.Float operations
 // - Comprehensive input validation (NaN, Inf, negative values)
-// - Suitable for user input where precision loss is acceptable
+// - Suitable for address input where precision loss is acceptable
 //
 // PRECISION HANDLING:
 // - Accepts small floating-point imprecision (< 0.5 Wei)

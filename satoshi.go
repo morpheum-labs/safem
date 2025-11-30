@@ -11,7 +11,7 @@
 //
 // USAGE PATTERNS:
 // 1. Payload Processing:
-//   - Use DecimalToSatoshi() to convert user input to satoshi strings
+//   - Use DecimalToSatoshi() to convert address input to satoshi strings
 //   - Use SatoshiToDecimal() to convert back for display
 //
 // 2. Cross-Chain Operations:
@@ -369,7 +369,7 @@ func SatoshiToWei(satoshiStr string) (string, error) {
 // NormalizeToSatoshi accepts various input formats and converts to satoshi (1e8)
 //
 // PURPOSE: Universal converter that handles multiple input types
-// USAGE: Payload processing, API parsing, user input
+// USAGE: Payload processing, API parsing, address input
 // CRITICAL: Auto-detects Wei format (> 1e15 threshold)
 // PERFORMANCE: Fast path for common types, uses pools for big.Int operations
 //

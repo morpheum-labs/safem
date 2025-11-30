@@ -23,9 +23,9 @@ import (
 // ============================================================================
 
 // ExampleDecimalToSatoshi_OrderSubmission demonstrates order submission
-// Use Case: Converting user input to satoshi format for EIP-712 payload
+// Use Case: Converting address input to satoshi format for EIP-712 payload
 func ExampleDecimalToSatoshi_OrderSubmission() {
-	// User input from UI
+	// Address input from UI
 	orderPrice := 50000.0 // $50,000
 	orderQuantity := 0.1  // 0.1 BTC
 
@@ -256,8 +256,8 @@ func ExampleBatchSatoshiToDecimal_API() {
 func ExampleNormalizeToSatoshi_PayloadProcessing() {
 	// Payload data from different sources
 	payloadData := map[string]interface{}{
-		"price":    "50000.0",               // User input (decimal string)
-		"quantity": 0.1,                     // User input (float64)
+		"price":    "50000.0",               // Address input (decimal string)
+		"quantity": 0.1,                     // Address input (float64)
 		"amount":   "5000000000000",         // Already satoshi
 		"fee":      "500000000000000000000", // Wei format (from Ethereum)
 	}
@@ -288,7 +288,7 @@ func ExampleNormalizeToSatoshi_PayloadProcessing() {
 // ExampleWeiToSatoshi_TokenBridge demonstrates token bridge operations
 // Use Case: Bridging tokens from Ethereum to Morphcore
 func ExampleWeiToSatoshi_TokenBridge() {
-	// User wants to bridge tokens from Ethereum
+	// Address wants to bridge tokens from Ethereum
 	ethereumBalanceWei := "1000000000000000000000" // 1000 tokens in Wei
 
 	// Convert to Morphcore format
@@ -310,7 +310,7 @@ func ExampleWeiToSatoshi_TokenBridge() {
 // ExampleSatoshiToWei_Withdrawal demonstrates withdrawal to Ethereum
 // Use Case: Withdrawing tokens from Morphcore to Ethereum
 func ExampleSatoshiToWei_Withdrawal() {
-	// User wants to withdraw from Morphcore
+	// Address wants to withdraw from Morphcore
 	morphcoreBalanceSatoshi := "100000000000" // 1000 tokens
 
 	// Convert to Wei for Ethereum transaction

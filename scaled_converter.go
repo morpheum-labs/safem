@@ -189,7 +189,7 @@ func ScaledUint64ToBigInt(value uint64, scale uint64) *big.Int {
 // Float64ToScaledUint64 converts float64 to uint64 (scaled) with comprehensive validation
 //
 // PURPOSE: Convert display values to uint64 keys for fast operations
-// USAGE: Converting user input, API values, display values to keys
+// USAGE: Converting address input, API values, display values to keys
 // CRITICAL: Validates NaN, Inf, negative, and bounds before conversion
 // PERFORMANCE: Uses FloatToBigIntBaseX for precision, then converts to uint64
 //
@@ -224,7 +224,7 @@ func Float64ToScaledUint64(value float64, scale uint64, maxValue float64) (uint6
 	valueFlt := new(big.Float).SetFloat64(value)
 	scaleFlt := new(big.Float).SetUint64(scale)
 	valueFlt.Mul(valueFlt, scaleFlt)
-	
+
 	valueBig := new(big.Int)
 	valueFlt.Int(valueBig)
 
@@ -312,7 +312,7 @@ func PriceKeyToBigInt(priceKey uint64) *big.Int {
 // Float64ToPriceKey converts float64 price to uint64 key with bounds checking
 //
 // PURPOSE: Convert display prices to keys
-// USAGE: User input, API requests, market data
+// USAGE: Address input, API requests, market data
 // CRITICAL: Validates bounds before conversion
 func Float64ToPriceKey(price float64) (uint64, error) {
 	return Float64ToScaledUint64(price, PriceScale, MaxSafePrice)

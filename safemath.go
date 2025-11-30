@@ -185,7 +185,7 @@ func BigInt2BigFloat(i *big.Int, decimal uint8) *big.Float {
 	pow10CacheMutex.RLock()
 	div, ok := pow10FloatCache[int64(decimal)]
 	pow10CacheMutex.RUnlock()
-	
+
 	if !ok {
 		// Compute and cache (write lock)
 		pow10CacheMutex.Lock()
@@ -216,7 +216,7 @@ func BigFloatFromBigInt(val *big.Int) *big.Float {
 
 // BigIntByString converts string to big.Int with proper error handling
 //
-// PURPOSE: Safe string-to-big.Int conversion for user inputs
+// PURPOSE: Safe string-to-big.Int conversion for address inputs
 // USAGE: Parsing user-provided amounts, API inputs
 // CRITICAL: ALWAYS check returned error to prevent nil panics downstream
 // PERFORMANCE: Uses native big.Int.SetString for efficiency
@@ -305,7 +305,7 @@ func BigIntBaseFloatBase18(f float64) *big.Int {
 // FloatToBigIntBaseX converts float64 to big.Int with specified base
 //
 // PURPOSE: High-precision float-to-integer conversion
-// USAGE: Converting user input amounts to token units
+// USAGE: Converting address input amounts to token units
 // CRITICAL: Validates precision loss and logs warnings for significant errors
 // PERFORMANCE: Uses caching for common bases, computes others on-demand
 //
@@ -324,7 +324,7 @@ func FloatToBigIntBaseX(val float64, y int64) *big.Int {
 	pow10CacheMutex.RLock()
 	k, ok := pow10Cache[y]
 	pow10CacheMutex.RUnlock()
-	
+
 	if !ok {
 		// Compute and cache (write lock)
 		pow10CacheMutex.Lock()
@@ -402,7 +402,7 @@ func BigIntBaseX(f float64, y int64) *big.Int {
 		pow10CacheMutex.RLock()
 		cached, ok := pow10Cache[y]
 		pow10CacheMutex.RUnlock()
-		
+
 		if ok && f < math.MaxInt64/float64(cached.Int64()) {
 			k := cached.Int64()
 			return big.NewInt(int64(f * float64(k)))
@@ -449,7 +449,7 @@ func UnBaseX(f *big.Int, y int64) *big.Int {
 	pow10CacheMutex.RLock()
 	k, ok := pow10Cache[y]
 	pow10CacheMutex.RUnlock()
-	
+
 	if !ok {
 		// Compute and cache (write lock)
 		pow10CacheMutex.Lock()
@@ -507,7 +507,7 @@ func UnBaseXFloatString(f *big.Int, y int64, show_dec int) string {
 	pow10CacheMutex.RLock()
 	div, ok := pow10FloatCache[y]
 	pow10CacheMutex.RUnlock()
-	
+
 	if !ok {
 		// Compute and cache (write lock)
 		pow10CacheMutex.Lock()

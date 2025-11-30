@@ -144,7 +144,7 @@ func Float64ToPriceKey(price float64) (uint64, error)
 **Purpose**: Convert display prices to keys
 
 **Use When**:
-- User input processing
+- Address input processing
 - API requests
 - Market data conversion
 
@@ -302,7 +302,7 @@ func Float64ToQuantityKey(quantity float64) (uint64, error)
 **Purpose**: Convert float64 quantity to uint64 key
 
 **Use When**:
-- User input processing
+- Address input processing
 - API requests
 - Display value conversion
 
@@ -580,7 +580,7 @@ ratioKey, _ := CalculateMarginRatioKey(equityKey, marginKey)
 // Check if liquidatable
 thresholdKey, _ := Float64ToRatioKey(1.1) // 110%
 if IsLiquidatableKey(ratioKey, thresholdKey) {
-    triggerLiquidation(userID)
+    triggerLiquidation(address)
 }
 ```
 
@@ -707,7 +707,7 @@ if err := ValidatePriceKey(priceKey); err != nil {
 
 **Use `BigIntToPriceKey` when**:
 - ✅ Converting from decimal format (e.g., 2000.0 with 18 decimals)
-- ✅ Converting from user input or API values
+- ✅ Converting from address input or API values
 - ✅ Input needs to be scaled by 1e8
 
 **Use `BigIntToPriceKeyFromSatoshi` when**:
@@ -745,7 +745,7 @@ Same logic applies to quantity conversions:
 **Use `satoshi.go` when**:
 - ✅ String-based conversions (EIP-712 payloads)
 - ✅ Cross-chain conversions (Wei ↔ Satoshi)
-- ✅ User input/output formatting
+- ✅ Address input/output formatting
 - ✅ Payload processing
 
 ### vs safemath.go
@@ -821,7 +821,7 @@ pnl := new(big.Int).Mul(order.PriceBig, quantityBig)
 
 See `scaled_converter_examples.go` for comprehensive examples including:
 - Orderbook price level keys
-- User input conversion
+- Address input conversion
 - Fast price comparison and sorting
 - Risk engine value aggregation
 - Margin ratio calculation

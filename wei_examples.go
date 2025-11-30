@@ -23,9 +23,9 @@ import (
 // ============================================================================
 
 // ExampleWeiToEther_Basic demonstrates basic Wei to Ether conversion
-// Use Case: Displaying user balance in human-readable format
+// Use Case: Displaying address balance in human-readable format
 func ExampleWeiToEther_Basic() {
-	// User's balance in Wei (from blockchain)
+	// Address's balance in Wei (from blockchain)
 	balanceWei := big.NewInt(1500000000000000000) // 1.5 ETH
 
 	// Convert to Ether for display
@@ -82,10 +82,10 @@ func ExampleWeiToEtherSafe_Critical() {
 	// Output: Settlement amount: 1000.000000000000000000 ETH
 }
 
-// ExampleEtherToWei_UserInput demonstrates converting user input to Wei
-// Use Case: Processing user input for token transfers
+// ExampleEtherToWei_UserInput demonstrates converting address input to Wei
+// Use Case: Processing address input for token transfers
 func ExampleEtherToWei_UserInput() {
-	// User enters amount in Ether (from UI or API)
+	// Address enters amount in Ether (from UI or API)
 	userInputEth := 2.5
 
 	// Convert to Wei for blockchain transaction
@@ -95,10 +95,10 @@ func ExampleEtherToWei_UserInput() {
 		return
 	}
 
-	fmt.Printf("User input: %.1f ETH\n", userInputEth)
+	fmt.Printf("Address input: %.1f ETH\n", userInputEth)
 	fmt.Printf("Transaction amount: %s Wei\n", amountWei.String())
 	// Output:
-	// User input: 2.5 ETH
+	// Address input: 2.5 ETH
 	// Transaction amount: 2500000000000000000 Wei
 }
 
@@ -130,9 +130,9 @@ func ExampleEtherToWei_OrderSubmission() {
 }
 
 // ExampleWeiToEther_BalanceCheck demonstrates balance checking
-// Use Case: Checking if user has sufficient balance for transaction
+// Use Case: Checking if address has sufficient balance for transaction
 func ExampleWeiToEther_BalanceCheck() {
-	// User's current balance (from blockchain)
+	// Address's current balance (from blockchain)
 	userBalanceWei := big.NewInt(5000000000000000000) // 5 ETH
 
 	// Required amount for transaction
@@ -209,29 +209,29 @@ func ExampleEtherToWei_TokenTransfer() {
 // ExampleWeiToEther_BatchProcessing demonstrates batch processing
 // Use Case: Processing multiple balances efficiently
 func ExampleWeiToEther_BatchProcessing() {
-	// Multiple user balances from database
+	// Multiple address balances from database
 	balance1, _ := new(big.Int).SetString("1000000000000000000", 10)  // 1 ETH
 	balance2, _ := new(big.Int).SetString("500000000000000000", 10)   // 0.5 ETH
 	balance3, _ := new(big.Int).SetString("2500000000000000000", 10)  // 2.5 ETH
 	balance4, _ := new(big.Int).SetString("10000000000000000000", 10) // 10 ETH
 	balancesWei := []*big.Int{balance1, balance2, balance3, balance4}
 
-	fmt.Println("User Balances:")
+	fmt.Println("Address Balances:")
 	for i, balanceWei := range balancesWei {
 		// Use optimized version for performance
 		balanceEth, err := WeiToEtherOptimized(balanceWei)
 		if err != nil {
-			fmt.Printf("User %d: Error - %v\n", i, err)
+			fmt.Printf("Address %d: Error - %v\n", i, err)
 			continue
 		}
-		fmt.Printf("User %d: %.18f ETH\n", i, balanceEth)
+		fmt.Printf("Address %d: %.18f ETH\n", i, balanceEth)
 	}
 	// Output:
-	// User Balances:
-	// User 0: 1.000000000000000000 ETH
-	// User 1: 0.500000000000000000 ETH
-	// User 2: 2.500000000000000000 ETH
-	// User 3: 10.000000000000000000 ETH
+	// Address Balances:
+	// Address 0: 1.000000000000000000 ETH
+	// Address 1: 0.500000000000000000 ETH
+	// Address 2: 2.500000000000000000 ETH
+	// Address 3: 10.000000000000000000 ETH
 }
 
 // ExampleWeiToEther_ErrorHandling demonstrates error handling

@@ -55,10 +55,10 @@ func ExampleBigIntToPriceKey_Orderbook() {
 	//   Order 4: 5000300000000 → key 5000300000000 → 5000300000000
 }
 
-// ExampleFloat64ToPriceKey_UserInput demonstrates user input conversion
-// Use Case: Converting user input prices to keys for orderbook operations
+// ExampleFloat64ToPriceKey_UserInput demonstrates address input conversion
+// Use Case: Converting address input prices to keys for orderbook operations
 func ExampleFloat64ToPriceKey_UserInput() {
-	// User input prices from UI
+	// Address input prices from UI
 	userPrices := []float64{
 		50000.0,
 		50001.5,
@@ -66,7 +66,7 @@ func ExampleFloat64ToPriceKey_UserInput() {
 		49999.75,
 	}
 
-	fmt.Println("User Input → Price Keys:")
+	fmt.Println("Address Input → Price Keys:")
 	for i, price := range userPrices {
 		priceKey, err := Float64ToPriceKey(price)
 		if err != nil {
@@ -78,7 +78,7 @@ func ExampleFloat64ToPriceKey_UserInput() {
 		fmt.Printf("  Price %d: $%.2f → key %d → $%.2f\n", i, price, priceKey, priceBack)
 	}
 	// Output:
-	// User Input → Price Keys:
+	// Address Input → Price Keys:
 	//   Price 0: $50000.00 → key 5000000000000 → $50000.00
 	//   Price 1: $50001.50 → key 5000150000000 → $50001.50
 	//   Price 2: $50002.25 → key 5000225000000 → $50002.25
@@ -158,7 +158,7 @@ func ExampleBigIntToValueKey_RiskEngine() {
 // ExampleCalculateMarginRatioKey_Liquidation demonstrates liquidation checks
 // Use Case: Fast margin ratio calculation for liquidation engine
 func ExampleCalculateMarginRatioKey_Liquidation() {
-	// User's equity and margin requirement
+	// Address's equity and margin requirement
 	equityKey, _ := Float64ToValueKey(10000.0)           // $10,000 equity
 	marginRequirementKey, _ := Float64ToValueKey(5000.0) // $5,000 margin requirement
 
