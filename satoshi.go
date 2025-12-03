@@ -285,6 +285,134 @@ func SatoshiToDecimalBigFloat(satoshiStr string) (*big.Float, error) {
 }
 
 // ============================================================================
+// Cross-Token Decimal Conversion (Generic)
+// ============================================================================
+
+// ConvertFromDecimalsToSatoshi converts an amount from source token decimals to satoshi (1e8)
+//
+// PURPOSE: Generic cross-token conversion for any source decimal precision (INBOUND)
+// USAGE: Hyperlane message processing (inbound), cross-chain token conversions (other chain → Morpheum)
+// CRITICAL: amount is in source token's base units (e.g., wei for ETH, smallest unit for USDC)
+// Conversion formula: satoshi = (amount * 1e8) / (10^source_decimals)
+// SECURITY: Uses ceiling rounding (ceil=true) to preserve precision and prevent rounding attacks
+// This ensures no precision loss accumulates over many conversions, protecting against systematic exploitation
+// Uses MulDivPrecise for precision-preserving arithmetic
+//
+// Example:
+//
+//	// Convert 1 ETH (1e18 wei) with 18 decimals to satoshi
+//	amount := big.NewInt(1e18)
+//	satoshi, err := ConvertFromDecimalsToSatoshi(amount, 18)
+//	// Returns: *big.Int("100000000"), nil (1.0 in satoshi)
+//
+//	// Convert 1.000000001 ETH (1e18 + 1 wei) with 18 decimals to satoshi
+//	amount := big.NewInt(1e18 + 1)
+//	satoshi, err := ConvertFromDecimalsToSatoshi(amount, 18)
+//	// Returns: *big.Int("100000001"), nil (ceiling rounding preserves precision)
+func ConvertFromDecimalsToSatoshi(amount *big.Int, sourceDecimals uint8) (*big.Int, error) {
+	if amount == nil {
+		return nil, fmt.Errorf("%w: amount cannot be nil", ErrInvalidSatoshiFormat)
+	}
+
+	if amount.Sign() < 0 {
+		return nil, fmt.Errorf("%w: amount cannot be negative", ErrSatoshiUnderflow)
+	}
+
+	// Handle zero amount
+	if amount.Sign() == 0 {
+		return big.NewInt(0), nil
+	}
+
+	// Validate decimals (max 77 to prevent overflow in 10^decimals)
+	if sourceDecimals > 77 {
+		return nil, fmt.Errorf("decimals too large: %d (max 77)", sourceDecimals)
+	}
+
+	// Calculate: satoshi = (amount * 1e8) / (10^source_decimals)
+	// Use MulDivPrecise with ceil=true for precision preservation (ceiling rounding)
+	// Security: Prevents rounding attacks by ensuring no precision loss on inbound conversions
+	if sourceDecimals > 0 {
+		// Get or compute 10^source_decimals
+		sourceScale := satoshiBigIntPool.Get().(*big.Int)
+		defer satoshiBigIntPool.Put(sourceScale)
+		sourceScale.Exp(big.NewInt(10), big.NewInt(int64(sourceDecimals)), nil)
+
+		// Use MulDivPrecise with ceil=true for precision preservation (ceiling rounding)
+		result, err := MulDivPrecise(amount, satoshiScaleBig, sourceScale, true)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert from decimals to satoshi: %w", err)
+		}
+		return result, nil
+	}
+
+	// If sourceDecimals is 0, just multiply by satoshi scale
+	result := new(big.Int).Mul(amount, satoshiScaleBig)
+	return result, nil
+}
+
+// ConvertFromSatoshiToDecimals converts an amount from satoshi (1e8) to target token decimals
+//
+// PURPOSE: Generic cross-token conversion for outbound operations (OUTBOUND)
+// USAGE: Hyperlane message processing (outbound), cross-chain token conversions (Morpheum → other chain)
+// CRITICAL: satoshiAmount is in satoshi format (1e8 precision)
+// Conversion formula: targetAmount = (satoshiAmount * 10^target_decimals) / 1e8
+// SECURITY: Uses truncation rounding (ceil=false) for conservative precision handling
+// This prevents precision amplification attacks where small satoshi amounts could be exploited
+// Uses MulDivPrecise for precision-preserving arithmetic
+//
+// Example:
+//
+//	// Convert 1.0 satoshi (1e8) with 18 decimals to wei
+//	satoshiAmount := big.NewInt(1e8)
+//	wei, err := ConvertFromSatoshiToDecimals(satoshiAmount, 18)
+//	// Returns: *big.Int("1000000000000000000"), nil (1.0 ETH in wei)
+//
+//	// Convert 1.000000001 satoshi (1e8 + 1) with 18 decimals to wei
+//	satoshiAmount := big.NewInt(1e8 + 1)
+//	wei, err := ConvertFromSatoshiToDecimals(satoshiAmount, 18)
+//	// Returns: *big.Int("1000000000000000000"), nil (truncation prevents precision amplification)
+func ConvertFromSatoshiToDecimals(satoshiAmount *big.Int, targetDecimals uint8) (*big.Int, error) {
+	if satoshiAmount == nil {
+		return nil, fmt.Errorf("%w: satoshi amount cannot be nil", ErrInvalidSatoshiFormat)
+	}
+
+	if satoshiAmount.Sign() < 0 {
+		return nil, fmt.Errorf("%w: satoshi amount cannot be negative", ErrSatoshiUnderflow)
+	}
+
+	// Handle zero amount
+	if satoshiAmount.Sign() == 0 {
+		return big.NewInt(0), nil
+	}
+
+	// Validate decimals (max 77 to prevent overflow in 10^decimals)
+	if targetDecimals > 77 {
+		return nil, fmt.Errorf("decimals too large: %d (max 77)", targetDecimals)
+	}
+
+	// Calculate: targetAmount = (satoshiAmount * 10^target_decimals) / 1e8
+	// Use MulDivPrecise with ceil=false for conservative precision handling (truncation)
+	// Security: Prevents precision amplification attacks on outbound conversions
+	if targetDecimals > 0 {
+		// Get or compute 10^target_decimals
+		targetScale := satoshiBigIntPool.Get().(*big.Int)
+		defer satoshiBigIntPool.Put(targetScale)
+		targetScale.Exp(big.NewInt(10), big.NewInt(int64(targetDecimals)), nil)
+
+		// Use MulDivPrecise with ceil=false for conservative precision handling (truncation)
+		result, err := MulDivPrecise(satoshiAmount, targetScale, satoshiScaleBig, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert from satoshi to decimals: %w", err)
+		}
+		return result, nil
+	}
+
+	// If targetDecimals is 0, just divide by satoshi scale
+	result := new(big.Int).Div(satoshiAmount, satoshiScaleBig)
+	return result, nil
+}
+
+// ============================================================================
 // Wei ↔ Satoshi Conversions
 // ============================================================================
 
