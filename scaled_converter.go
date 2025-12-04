@@ -80,6 +80,7 @@ var (
 	MaxSafeRatio = float64(math.MaxUint64) / RatioScale
 
 	// MaxSafeSignedRatio: Maximum ratio magnitude that can be represented as int64
+	// Calculated as: MaxInt64 / RatioScale (to ensure scaled value fits in int64)
 	MaxSafeSignedRatio = float64(math.MaxInt64) / RatioScale
 
 	// MaxSafeQuantity: Maximum quantity that can be safely converted to uint64
@@ -102,6 +103,7 @@ var (
 	ErrInvalidScale   = errors.New("invalid scale factor")
 	ErrOutOfBounds    = errors.New("value out of safe bounds")
 	ErrDivisionByZero = errors.New("division by zero")
+	// ErrInvalidInput is defined in safemath.go
 )
 
 // Pool for big.Int reuse to reduce allocations in hot paths
@@ -321,12 +323,6 @@ func Float64ToPriceKey(price float64) (uint64, error) {
 	return Float64ToScaledUint64(price, PriceScale, MaxSafePrice)
 }
 
-// Uint64ToPriceKey treats the provided price as already scaled (satoshi precision)
-// and returns it unchanged. It exists for callers that already operate in uint64 space.
-func Uint64ToPriceKey(price uint64) (uint64, error) {
-	return price, nil
-}
-
 // PriceKeyToFloat64 converts uint64 price key to float64 for display
 //
 // PURPOSE: Convert keys to display prices
@@ -334,6 +330,18 @@ func Uint64ToPriceKey(price uint64) (uint64, error) {
 // WARNING: May lose precision for very large values
 func PriceKeyToFloat64(priceKey uint64) float64 {
 	return ScaledUint64ToFloat64(priceKey, PriceScale)
+}
+
+// Uint64ToPriceKey validates and returns a uint64 price key (already scaled)
+//
+// PURPOSE: Identity function for already-scaled price values
+// USAGE: When price is already in satoshi format (uint64), just validate bounds
+// CRITICAL: Input must already be scaled by PriceScale (1e8)
+func Uint64ToPriceKey(price uint64) (uint64, error) {
+	if err := ValidatePriceKey(price); err != nil {
+		return 0, err
+	}
+	return price, nil
 }
 
 // StringToPriceKey converts u256 string to uint64 price key
@@ -370,15 +378,21 @@ func Float64ToValueKey(value float64) (uint64, error) {
 	return Float64ToScaledUint64(value, ValueScale, MaxSafeValue)
 }
 
-// Uint64ToValueKey treats the provided value as already scaled (satoshi precision)
-// and returns it unchanged.
-func Uint64ToValueKey(value uint64) (uint64, error) {
-	return value, nil
-}
-
 // ValueKeyToFloat64 converts uint64 value key to float64
 func ValueKeyToFloat64(valueKey uint64) float64 {
 	return ScaledUint64ToFloat64(valueKey, ValueScale)
+}
+
+// Uint64ToValueKey validates and returns a uint64 value key (already scaled)
+//
+// PURPOSE: Identity function for already-scaled value values
+// USAGE: When value is already in satoshi format (uint64), just validate bounds
+// CRITICAL: Input must already be scaled by ValueScale (1e8)
+func Uint64ToValueKey(value uint64) (uint64, error) {
+	if err := ValidateValueKey(value); err != nil {
+		return 0, err
+	}
+	return value, nil
 }
 
 // ============================================================================
@@ -430,9 +444,15 @@ func Float64ToQuantityKey(quantity float64) (uint64, error) {
 	return Float64ToScaledUint64(quantity, QuantityScale, MaxSafeQuantity)
 }
 
-// Uint64ToQuantityKey treats the input quantity as already scaled (satoshi precision)
-// and returns it unchanged. Callers should only supply non-negative values.
+// Uint64ToQuantityKey validates and returns a uint64 quantity key (already scaled)
+//
+// PURPOSE: Identity function for already-scaled quantity values
+// USAGE: When quantity is already in satoshi format (uint64), just validate bounds
+// CRITICAL: Input must already be scaled by QuantityScale (1e8)
 func Uint64ToQuantityKey(quantity uint64) (uint64, error) {
+	if err := ValidateValueKey(quantity); err != nil {
+		return 0, err
+	}
 	return quantity, nil
 }
 
@@ -449,41 +469,106 @@ func Float64ToRatioKey(ratio float64) (uint64, error) {
 	return Float64ToScaledUint64(ratio, RatioScale, MaxSafeRatio)
 }
 
-// Uint64ToRatioKey treats the provided ratio as already scaled (satoshi precision)
-// and returns it unchanged.
-func Uint64ToRatioKey(ratio uint64) (uint64, error) {
-	return ratio, nil
-}
-
 // RatioKeyToFloat64 converts uint64 ratio key to float64
 func RatioKeyToFloat64(ratioKey uint64) float64 {
 	return ScaledUint64ToFloat64(ratioKey, RatioScale)
 }
 
-// Float64ToSignedRatioKey converts a float64 ratio (which may be negative) into a signed int64 key.
-// This is required for metrics such as correlations where ratios span [-1.0, 1.0].
-func Float64ToSignedRatioKey(ratio float64) (int64, error) {
-	if math.IsNaN(ratio) {
-		return 0, fmt.Errorf("%w: ratio is NaN", ErrInvalidInput)
-	}
-	if math.IsInf(ratio, 0) {
-		return 0, fmt.Errorf("%w: ratio is Infinity", ErrInvalidInput)
-	}
-	if ratio > MaxSafeSignedRatio || ratio < -MaxSafeSignedRatio {
-		return 0, fmt.Errorf("%w: ratio %f exceeds signed bounds ±%f", ErrOutOfBounds, ratio, MaxSafeSignedRatio)
-	}
-
-	scaled := math.Round(ratio * RatioScale)
-	if scaled > math.MaxInt64 || scaled < math.MinInt64 {
-		return 0, fmt.Errorf("%w: ratio %f * scale %d exceeds int64 bounds", ErrOverflow, ratio, RatioScale)
+// Uint64ToRatioKey validates and returns a uint64 ratio key (already scaled)
+//
+// PURPOSE: Identity function for already-scaled ratio values
+// USAGE: When ratio is already in satoshi format (uint64), just validate bounds
+// CRITICAL: Input must already be scaled by RatioScale (1e8)
+func Uint64ToRatioKey(ratio uint64) (uint64, error) {
+	// Validate bounds - ratios can be larger than typical values
+	// Use MaxSafeRatio for validation
+	maxRatioKey, err := Float64ToRatioKey(MaxSafeRatio)
+	if err != nil {
+		// If MaxSafeRatio itself can't be converted, use direct calculation
+		maxRatioKey = math.MaxUint64
 	}
 
-	return int64(scaled), nil
+	if ratio > maxRatioKey {
+		return 0, fmt.Errorf("%w: ratio key %d exceeds maximum %d (max ratio: %f)",
+			ErrOutOfBounds, ratio, maxRatioKey, MaxSafeRatio)
+	}
+
+	return ratio, nil
 }
 
-// SignedRatioKeyToFloat64 converts a signed ratio key back to float64.
+// Float64ToSignedRatioKey converts float64 correlation (-1.0 to 1.0) to int64 key
+// using scaled fixed point arithmetic
+//
+// PURPOSE: Store signed correlation values as int64 for fast comparisons
+// USAGE: Correlation matrix, portfolio variance calculations
+// CRITICAL: Uses scaled fixed point (int64) - direct representation, no bias needed
+// DESIGN:
+//
+//	Scale float64 to int64: correlation * RatioScale → int64
+//	Result: correlation = -1.0 → -1e8, 0.0 → 0, 1.0 → 1e8
+//
+// PERFORMANCE: Uses int64 arithmetic (fast, no big.Int overhead)
+func Float64ToSignedRatioKey(correlation float64) (int64, error) {
+	// Check for NaN and Infinity
+	if math.IsNaN(correlation) {
+		return 0, fmt.Errorf("%w: correlation is NaN", ErrInvalidInput)
+	}
+	if math.IsInf(correlation, 0) {
+		return 0, fmt.Errorf("%w: correlation is Infinity", ErrInvalidInput)
+	}
+
+	// Clamp correlation to [-1.0, 1.0] range
+	if correlation < -1.0 {
+		correlation = -1.0
+	}
+	if correlation > 1.0 {
+		correlation = 1.0
+	}
+
+	// Check bounds (ensure scaled value fits in int64)
+	if math.Abs(correlation) > MaxSafeSignedRatio {
+		return 0, fmt.Errorf("%w: correlation %f exceeds maximum %f (scale: %v)",
+			ErrOutOfBounds, correlation, MaxSafeSignedRatio, RatioScale)
+	}
+
+	// SCALED FIXED POINT: Convert to int64 scaled by RatioScale
+	// Use big.Float for precision, then convert to int64
+	corrFlt := new(big.Float).SetFloat64(correlation)
+	scaleFlt := new(big.Float).SetUint64(RatioScale)
+	corrFlt.Mul(corrFlt, scaleFlt)
+
+	// Convert to int64 (scaled fixed point representation)
+	corrScaled := new(big.Int)
+	corrFlt.Int(corrScaled)
+
+	// Check if fits in int64
+	if !corrScaled.IsInt64() {
+		return 0, fmt.Errorf("%w: scaled correlation exceeds int64 range", ErrOverflow)
+	}
+
+	return corrScaled.Int64(), nil
+}
+
+// SignedRatioKeyToFloat64 converts int64 ratio key back to float64 correlation
+// using scaled fixed point arithmetic
+//
+// PURPOSE: Convert stored correlation keys back to float64 for calculations
+// USAGE: Portfolio variance calculations, risk analysis
+// CRITICAL: Converts int64 scaled value back to float64
+// DESIGN:
+//
+//	Convert scaled int64 to float64: int64 / RatioScale → float64
+//
+// PERFORMANCE: Uses int64 arithmetic (fast, no big.Int overhead)
 func SignedRatioKeyToFloat64(ratioKey int64) float64 {
-	return float64(ratioKey) / RatioScale
+	// SCALED FIXED POINT: Convert scaled int64 back to float64
+	// Use big.Float for precision
+	scaledFlt := new(big.Float).SetInt64(ratioKey)
+	scaleFlt := new(big.Float).SetUint64(RatioScale)
+	scaledFlt.Quo(scaledFlt, scaleFlt)
+
+	result, _ := scaledFlt.Float64()
+	return result
 }
 
 // ============================================================================
@@ -738,9 +823,24 @@ func ScoreKeyToFloat64(scoreKey uint64) float64 {
 	return ScaledUint64ToFloat64(scoreKey, ScoreScale)
 }
 
-// Uint64ToScoreKey treats the provided score as already scaled (satoshi precision)
-// and returns it unchanged.
+// Uint64ToScoreKey validates and returns a uint64 score key (already scaled)
+//
+// PURPOSE: Identity function for already-scaled score values
+// USAGE: When score is already in satoshi format (uint64), just validate bounds
+// CRITICAL: Input must already be scaled by ScoreScale (1e8)
 func Uint64ToScoreKey(score uint64) (uint64, error) {
+	// Validate bounds
+	maxScore := float64(math.MaxUint64) / ScoreScale
+	maxScoreKey, err := Float64ToScoreKey(maxScore)
+	if err != nil {
+		maxScoreKey = math.MaxUint64
+	}
+
+	if score > maxScoreKey {
+		return 0, fmt.Errorf("%w: score key %d exceeds maximum %d",
+			ErrOutOfBounds, score, maxScoreKey)
+	}
+
 	return score, nil
 }
 
