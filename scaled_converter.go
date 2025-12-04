@@ -79,6 +79,9 @@ var (
 	// MaxSafeRatio: Maximum ratio that can be safely converted to uint64
 	MaxSafeRatio = float64(math.MaxUint64) / RatioScale
 
+	// MaxSafeSignedRatio: Maximum ratio magnitude that can be represented as int64
+	MaxSafeSignedRatio = float64(math.MaxInt64) / RatioScale
+
 	// MaxSafeQuantity: Maximum quantity that can be safely converted to uint64
 	MaxSafeQuantity = float64(math.MaxUint64) / QuantityScale
 )
@@ -318,6 +321,12 @@ func Float64ToPriceKey(price float64) (uint64, error) {
 	return Float64ToScaledUint64(price, PriceScale, MaxSafePrice)
 }
 
+// Uint64ToPriceKey treats the provided price as already scaled (satoshi precision)
+// and returns it unchanged. It exists for callers that already operate in uint64 space.
+func Uint64ToPriceKey(price uint64) (uint64, error) {
+	return price, nil
+}
+
 // PriceKeyToFloat64 converts uint64 price key to float64 for display
 //
 // PURPOSE: Convert keys to display prices
@@ -359,6 +368,12 @@ func ValueKeyToBigInt(valueKey uint64) *big.Int {
 // Float64ToValueKey converts float64 value to uint64 key
 func Float64ToValueKey(value float64) (uint64, error) {
 	return Float64ToScaledUint64(value, ValueScale, MaxSafeValue)
+}
+
+// Uint64ToValueKey treats the provided value as already scaled (satoshi precision)
+// and returns it unchanged.
+func Uint64ToValueKey(value uint64) (uint64, error) {
+	return value, nil
 }
 
 // ValueKeyToFloat64 converts uint64 value key to float64
@@ -415,6 +430,12 @@ func Float64ToQuantityKey(quantity float64) (uint64, error) {
 	return Float64ToScaledUint64(quantity, QuantityScale, MaxSafeQuantity)
 }
 
+// Uint64ToQuantityKey treats the input quantity as already scaled (satoshi precision)
+// and returns it unchanged. Callers should only supply non-negative values.
+func Uint64ToQuantityKey(quantity uint64) (uint64, error) {
+	return quantity, nil
+}
+
 // ============================================================================
 // Ratio Key Conversions (for Margin Ratios, Risk Factors)
 // ============================================================================
@@ -428,9 +449,41 @@ func Float64ToRatioKey(ratio float64) (uint64, error) {
 	return Float64ToScaledUint64(ratio, RatioScale, MaxSafeRatio)
 }
 
+// Uint64ToRatioKey treats the provided ratio as already scaled (satoshi precision)
+// and returns it unchanged.
+func Uint64ToRatioKey(ratio uint64) (uint64, error) {
+	return ratio, nil
+}
+
 // RatioKeyToFloat64 converts uint64 ratio key to float64
 func RatioKeyToFloat64(ratioKey uint64) float64 {
 	return ScaledUint64ToFloat64(ratioKey, RatioScale)
+}
+
+// Float64ToSignedRatioKey converts a float64 ratio (which may be negative) into a signed int64 key.
+// This is required for metrics such as correlations where ratios span [-1.0, 1.0].
+func Float64ToSignedRatioKey(ratio float64) (int64, error) {
+	if math.IsNaN(ratio) {
+		return 0, fmt.Errorf("%w: ratio is NaN", ErrInvalidInput)
+	}
+	if math.IsInf(ratio, 0) {
+		return 0, fmt.Errorf("%w: ratio is Infinity", ErrInvalidInput)
+	}
+	if ratio > MaxSafeSignedRatio || ratio < -MaxSafeSignedRatio {
+		return 0, fmt.Errorf("%w: ratio %f exceeds signed bounds ±%f", ErrOutOfBounds, ratio, MaxSafeSignedRatio)
+	}
+
+	scaled := math.Round(ratio * RatioScale)
+	if scaled > math.MaxInt64 || scaled < math.MinInt64 {
+		return 0, fmt.Errorf("%w: ratio %f * scale %d exceeds int64 bounds", ErrOverflow, ratio, RatioScale)
+	}
+
+	return int64(scaled), nil
+}
+
+// SignedRatioKeyToFloat64 converts a signed ratio key back to float64.
+func SignedRatioKeyToFloat64(ratioKey int64) float64 {
+	return float64(ratioKey) / RatioScale
 }
 
 // ============================================================================
@@ -683,6 +736,12 @@ func Float64ToScoreKey(score float64) (uint64, error) {
 // ScoreKeyToFloat64 converts uint64 score key to float64
 func ScoreKeyToFloat64(scoreKey uint64) float64 {
 	return ScaledUint64ToFloat64(scoreKey, ScoreScale)
+}
+
+// Uint64ToScoreKey treats the provided score as already scaled (satoshi precision)
+// and returns it unchanged.
+func Uint64ToScoreKey(score uint64) (uint64, error) {
+	return score, nil
 }
 
 // ============================================================================
